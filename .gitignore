@@ -1,0 +1,34 @@
+Search/res
+Search/output
+*.json
+*.xlsx
+*.xls
+*.txt
+*.csv
+*.db
+*.db.header
+console/*
+*.exe
+*.sql
+*.txt
+*.dat
+example
+# example/appExample/appExample
+# example/appExample/main
+# example/appExample/.*
+# example/appExample/app/*
+# example/test/test
+# example/test/main
+# example/testApp/testApp
+# example/testApp/main
+# example/testSql/testSql
+# example/testSql/main
+# example/testSql/room
+# example/testSqlDict/testSqlDict
+# example/testSqlDict/main
+# example/testapp2/testapp2
+# example/testapp2/main
+# example/testdb/testdb
+# example/testdb/main
+# example/testhtml/testhtml
+# example/testhtml/main
