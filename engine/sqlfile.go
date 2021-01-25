@@ -23,6 +23,7 @@ type SqlTxt struct {
 	datas      map[string][]Dict
 	cacheLines map[string][]Line
 	sqlType int
+	sqlLineEnd string
 }
 
 func Sqlname(a string) string {
