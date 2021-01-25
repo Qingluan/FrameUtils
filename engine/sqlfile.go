@@ -116,10 +116,16 @@ func (self *SqlTxt) ParseSqlHeader(v string) (tableName string, line Line) {
 }
 
 func (self *SqlTxt) switchSqlTp(data []byte) {
-	if bytes.Contains(data, []byte("CREATE TABLE [dbo]")) {
-		self.sqlLineEnd = "GO"
-		self.sqlType = TP_SQLSERVER
+	if self.sqlLineEnd == "" {
+		if bytes.Contains(data, []byte("CREATE TABLE [dbo]")) {
+			self.sqlLineEnd = "GO"
+			self.sqlType = TP_SQLSERVER
+
+		} else {
+			self.sqlLineEnd = ");"
+		}
 	}
+
 }
 
 func (self *SqlTxt) Iter(header ...string) <-chan Line {
@@ -179,7 +185,7 @@ func (self *SqlTxt) Iter(header ...string) <-chan Line {
 			c := 0
 			for self.obj.Scan() {
 				line := strings.TrimSpace(self.obj.Text())
-				fmt.Println(line)
+				// fmt.Println(line)
 				tbName, l := self.ParseSqlValue(line)
 				if self.filterheader != "" && tbName != self.filterheader {
 					continue
