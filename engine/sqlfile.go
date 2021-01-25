@@ -179,7 +179,7 @@ func (self *SqlTxt) Iter(header ...string) <-chan Line {
 			c := 0
 			for self.obj.Scan() {
 				line := strings.TrimSpace(self.obj.Text())
-				// fmt.Println(line)
+				fmt.Println(line)
 				tbName, l := self.ParseSqlValue(line)
 				if self.filterheader != "" && tbName != self.filterheader {
 					continue
