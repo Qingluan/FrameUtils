@@ -14,6 +14,16 @@ func AddLine(r []xlsxreader.Cell) (l Line) {
 	}
 	return
 }
+func (self *Xlsx) GetHead(k string) Line {
+	for _, s := range self.obj.Sheets {
+		if k == s {
+			for row := range self.obj.ReadRows(k) {
+				return AddLine(row.Cells)
+			}
+		}
+	}
+	return nil
+}
 
 func (self *Xlsx) Iter() <-chan Line {
 	ch := make(chan Line)

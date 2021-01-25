@@ -43,6 +43,19 @@ func (self *BaseObj) Search(k string) (lines []Line) {
 	return
 }
 
+func (self *BaseObj) GetHeader(k string) (header Line) {
+	if self.Tp() == "json" {
+		return (self.Base.(*JsonObj)).GetHead(k)
+	} else if self.Tp() == "sqltxt" {
+		return (self.Base.(*SqlTxt)).GetHead(k)
+	} else if self.Tp() == "xlsx" {
+		(self.Base.(*Xlsx)).GetHead(k)
+	} else {
+		return
+	}
+	return
+}
+
 func (self *BaseObj) Header(ks ...int) (header Line) {
 	if l := self.header(ks...); len(l) > 0 {
 		if len(l) > 0 {

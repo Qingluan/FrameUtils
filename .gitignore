@@ -7,7 +7,8 @@ Search/output
 *.csv
 *.db
 *.db.header
-console/*
+console/AppController/AppController
+console/ConsoleSearcher/ConsoleSearcher
 *.exe
 *.sql
 *.txt

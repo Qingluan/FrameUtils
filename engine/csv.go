@@ -34,6 +34,10 @@ func (self *Csv) Iter() <-chan Line {
 	return ch
 }
 
+func (self *Csv) GetHead(k string) Line {
+	return nil
+}
+
 func (self *Csv) Close() error {
 	return nil
 }

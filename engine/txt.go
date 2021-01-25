@@ -27,6 +27,10 @@ func (self *Txt) Iter() <-chan Line {
 	return ch
 }
 
+func (self *Txt) GetHead(k string) Line {
+	return nil
+}
+
 func (self *Txt) Close() error {
 	if self.obj != nil {
 		self.obj = nil

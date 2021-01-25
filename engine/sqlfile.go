@@ -10,12 +10,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	TP_MYSQL = 0
+	TP_SQLSERVER = 1
+	TP_SQLITE = 2
+)
+
 type SqlTxt struct {
 	obj        *bufio.Scanner
 	raw        string
 	headers    map[string]Line
 	datas      map[string][]Dict
 	cacheLines map[string][]Line
+	sqlType int
 }
 
 func Sqlname(a string) string {
@@ -26,6 +33,9 @@ func Sqlname(a string) string {
 		return a[1 : len(a)-1]
 	} else if strings.HasPrefix(a, "'") && strings.HasSuffix(a, "'") {
 		return a[1 : len(a)-1]
+	// sqlserver name : example
+	} else if strings.HasPrefix(a, "N'") && strings.HasSuffix(a, "'"){
+		return a[2: len(a) -1]
 	}
 	return a
 }
@@ -52,11 +62,31 @@ func (self *SqlTxt) ParseSqlValue(v string) (tableName string, line Line) {
 	return
 
 }
+func (self *SqlTxt) GetHead(k string) Line {
+	header := self.headers[k]
+	if header != nil {
+		// d := values.FromKey(header)
+		return header
+	}
+	return nil
+}
 
 func (self *SqlTxt) ParseSqlHeader(v string) (tableName string, line Line) {
 
 	// fmt.Println("Header:", v)
+	defer func(){
+		switch self.sqlType{
+		case TP_SQLSERVER:
+			self.sqlLineEnd = "GO"
+		default:
+			self.sqlLineEnd = ");"
+	
+		}
+	}()
 	tableName = Sqlname(strings.Fields(v)[2])
+	if strings.Contains(tableName, "[dbo]"){
+		self.sqlType = TP_SQLSERVER
+	}
 	fieldsPre := strings.SplitN(v, "(", 2)[1]
 	// fmt.Println("Header Mid:", fieldsPre)
 
@@ -92,7 +122,7 @@ func (self *SqlTxt) Iter() <-chan Line {
 			if atEOF {
 				return len(data), data, io.EOF
 			}
-			if e := bytes.Index(data, []byte(");")); e > 0 {
+			if e := bytes.Index(data, []byte(self.sqlLineEnd)); e > 0 {
 				if cs := bytes.Index(data[:e+2], []byte("CREATE TABLE")); cs > 0 {
 					self.ParseSqlHeader(string(data[cs : e+2]))
 

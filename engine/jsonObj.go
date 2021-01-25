@@ -6,6 +6,10 @@ type JsonObj struct {
 	Datas   []Dict
 }
 
+func (self *JsonObj) GetHead(k string) Line {
+	return nil
+}
+
 func (self *JsonObj) Iter() <-chan Line {
 	ch := make(chan Line)
 	go func() {

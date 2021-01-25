@@ -30,6 +30,7 @@ type Obj interface {
 	SearchTo(key string, linesChan chan []Line)
 	Work(sender chan string, reciver chan []Line)
 	Header(k ...int) Line
+	GetHeader(k string) Line
 	// DiffBy(other Obj, key ...string) []Line
 	// GetRow(i int) []Line
 	Iter() <-chan Line
