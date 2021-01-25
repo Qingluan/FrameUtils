@@ -6,12 +6,18 @@ import (
 )
 
 type Txt struct {
-	obj *bufio.Scanner
-	raw string
+	obj           *bufio.Scanner
+	raw           string
+	tableName     string
+	fileterheader string
+	nowheader     string
 }
 
-func (self *Txt) Iter() <-chan Line {
+func (self *Txt) Iter(header ...string) <-chan Line {
 	ch := make(chan Line)
+	if header != nil {
+		self.fileterheader = header[0]
+	}
 	self.obj = bufio.NewScanner(strings.NewReader(self.raw))
 
 	go func() {
@@ -19,7 +25,7 @@ func (self *Txt) Iter() <-chan Line {
 		for self.obj.Scan() {
 			line := strings.TrimSpace(self.obj.Text())
 			l := Line(strings.Fields(line))
-			ch <- l
+			ch <- append(Line{self.tableName}, l...)
 			c++
 		}
 		close(ch)
@@ -28,7 +34,7 @@ func (self *Txt) Iter() <-chan Line {
 }
 
 func (self *Txt) GetHead(k string) Line {
-	return nil
+	return Line{self.tableName}
 }
 
 func (self *Txt) Close() error {

@@ -18,7 +18,11 @@ func OpenObj(file string) (Obj, error) {
 			log.Println(err)
 			return nil, err
 		}
-		return &BaseObj{&Xlsx{xl}}, nil
+		return &BaseObj{
+			&Xlsx{
+				obj: xl,
+			},
+		}, nil
 	} else if strings.HasSuffix(file, ".csv") {
 		buf, err := ioutil.ReadFile(file)
 		if err != nil {
@@ -27,7 +31,8 @@ func OpenObj(file string) (Obj, error) {
 		}
 		return &BaseObj{
 			&Csv{
-				raw: string(buf),
+				raw:       string(buf),
+				tableName: file,
 			},
 		}, nil
 	} else if strings.HasSuffix(file, ".txt") {
@@ -38,7 +43,8 @@ func OpenObj(file string) (Obj, error) {
 		}
 		return &BaseObj{
 			&Txt{
-				raw: string(buf),
+				raw:       string(buf),
+				tableName: file,
 			},
 		}, nil
 	} else if strings.HasSuffix(file, ".json") {
@@ -52,8 +58,9 @@ func OpenObj(file string) (Obj, error) {
 		if len(v) > 0 {
 			return &BaseObj{
 				&JsonObj{
-					Header: v[0].Keys(),
-					Datas:  v,
+					Header:    v[0].Keys(),
+					Datas:     v,
+					tableName: file,
 				},
 			}, nil
 		} else {

@@ -21,7 +21,7 @@ type Line []string
 type Dict map[string]interface{}
 type Base interface {
 	header(keylength ...int) Line
-	Iter() <-chan Line
+	Iter(header ...string) <-chan Line
 	Close() error
 	Tp() string
 }
@@ -33,7 +33,7 @@ type Obj interface {
 	GetHeader(k string) Line
 	// DiffBy(other Obj, key ...string) []Line
 	// GetRow(i int) []Line
-	Iter() <-chan Line
+	Iter(filterheader ...string) <-chan Line
 	Where(filter func(lineno int, line Line, wordno int, word string) bool) (newObj *BaseObj)
 	Join(other Obj, opt int, keys ...string) (newObj *BaseObj)
 
@@ -214,4 +214,49 @@ func SaveDict(ds []Dict, name string) error {
 	defer f.Close()
 	f.Write(data)
 	return nil
+}
+
+func splitByIgnoreQuote(raw string, by string, quotes ...string) (out []string) {
+	quoted := false
+	key := ""
+	c := ' '
+	if quotes != nil {
+		out = strings.FieldsFunc(raw, func(r rune) (ifsplit bool) {
+			if key != "" && strings.HasPrefix(by, key+string(r)) {
+				key += string(r)
+			} else if by[0] == byte(r) {
+				key += string(r)
+			} else {
+				key = ""
+			}
+			if !quoted && r == rune(quotes[0][0]) {
+				c = r
+				quoted = !quoted
+			} else if quoted && r == rune(quotes[0][1]) {
+				quoted = !quoted
+			}
+
+			return !quoted && key == by
+		})
+	} else {
+		out = strings.FieldsFunc(raw, func(r rune) (ifsplit bool) {
+			if key != "" && strings.HasPrefix(by, key+string(r)) {
+				key += string(r)
+			} else if by[0] == byte(r) {
+				key += string(r)
+			} else {
+				key = ""
+			}
+			if !quoted && (r == '"' || r == '\'') {
+				c = r
+				quoted = !quoted
+			} else if quoted && r == c {
+				quoted = !quoted
+			}
+
+			return !quoted && key == by
+		})
+	}
+
+	return
 }

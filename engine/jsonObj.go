@@ -1,16 +1,17 @@
 package engine
 
 type JsonObj struct {
-	Header  Line
-	KeyMode int
-	Datas   []Dict
+	Header    Line
+	KeyMode   int
+	Datas     []Dict
+	tableName string
 }
 
 func (self *JsonObj) GetHead(k string) Line {
-	return nil
+	return Line{self.tableName}
 }
 
-func (self *JsonObj) Iter() <-chan Line {
+func (self *JsonObj) Iter(filterobj ...string) <-chan Line {
 	ch := make(chan Line)
 	go func() {
 		c := 0
@@ -24,7 +25,7 @@ func (self *JsonObj) Iter() <-chan Line {
 					l = append(l, "")
 				}
 			}
-			ch <- l
+			ch <- append(Line{self.tableName}, l...)
 			c++
 		}
 		close(ch)

@@ -5,7 +5,9 @@ import (
 )
 
 type Xlsx struct {
-	obj *xlsxreader.XlsxFileCloser
+	obj         *xlsxreader.XlsxFileCloser
+	filtertable string
+	nowtable    string
 }
 
 func AddLine(r []xlsxreader.Cell) (l Line) {
@@ -25,13 +27,20 @@ func (self *Xlsx) GetHead(k string) Line {
 	return nil
 }
 
-func (self *Xlsx) Iter() <-chan Line {
+func (self *Xlsx) Iter(filtertable ...string) <-chan Line {
 	ch := make(chan Line)
+	if filtertable != nil {
+		self.filtertable = filtertable[0]
+	}
 	go func() {
 		for _, table := range self.obj.Sheets {
+			self.nowtable = table
+			if self.filtertable != "" && self.filtertable != table {
+				continue
+			}
 			for row := range self.obj.ReadRows(table) {
 				l := AddLine(row.Cells)
-				ch <- l
+				ch <- append(Line{table}, l...)
 			}
 		}
 		close(ch)

@@ -7,11 +7,12 @@ import (
 )
 
 type Csv struct {
-	raw string
-	obj *csv.Reader
+	raw       string
+	obj       *csv.Reader
+	tableName string
 }
 
-func (self *Csv) Iter() <-chan Line {
+func (self *Csv) Iter(header ...string) <-chan Line {
 	ch := make(chan Line)
 	self.obj = csv.NewReader(strings.NewReader(self.raw))
 	self.obj.LazyQuotes = true
@@ -26,7 +27,7 @@ func (self *Csv) Iter() <-chan Line {
 			if err != nil {
 				continue
 			}
-			ch <- Line(row)
+			ch <- append(Line{self.tableName}, Line(row)...)
 			c++
 		}
 		close(ch)
@@ -35,7 +36,7 @@ func (self *Csv) Iter() <-chan Line {
 }
 
 func (self *Csv) GetHead(k string) Line {
-	return nil
+	return Line{self.tableName}
 }
 
 func (self *Csv) Close() error {
