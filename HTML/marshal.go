@@ -63,6 +63,10 @@ func MarshalHTML(field interface{}) string {
 			tagStr = fmt.Sprintf(tagTemp, defaultvalue, defaultvalue)
 		} else if tagname == "text" {
 			text = defaultvalue
+		} else if property.Kind() == reflect.Bool {
+			if property.Interface().(bool) {
+				values = append(values, fmt.Sprintf("%s", tagname))
+			}
 		} else {
 			values = append(values, fmt.Sprintf("%s=\"%s\"", tagname, defaultvalue))
 		}
