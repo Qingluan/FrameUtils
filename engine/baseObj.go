@@ -98,7 +98,7 @@ func (self *BaseObj) AsJson() (ds []Dict) {
 				header = line
 				continue
 			}
-			ds = append(ds, line.FromKey(header))
+			ds = append(ds, line[1:].FromKey(header))
 		}
 	}
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	//	"searcher/engine"
 	"flag"
@@ -31,9 +32,11 @@ func main() {
 	cli := false
 	frp := ""
 	dst := ""
+	filter := ""
 	flag.BoolVar(&cli, "cli", false, "true to console")
 	flag.StringVar(&frp, "fr", "", "set from file .")
 	flag.StringVar(&dst, "to", "", "set to file.")
+	flag.StringVar(&filter, "grep", "", "fileter table if type is sql/xlsx.")
 	flag.Parse()
 	if cli {
 		sengine := engine.EngineInit()
@@ -55,21 +58,34 @@ func main() {
 	} else {
 		if frp != "" && dst != "" {
 			obj, err := engine.OpenObj(frp)
+			// fmt.Println("Opened obj:", obj)
+
 			if err != nil {
 				log.Fatal(err)
+				time.Sleep(2 * time.Second)
 			}
+			// fmt.Println("Opened obj:", obj)
 			// c := 0
 			fsd := make(map[string]*os.File)
 			// for _, d := range obj.AsJson() {
 			// 	fmt.Println(d)
 			// }
-			for line := range obj.Iter() {
+			var objs <-chan engine.Line
+			if filter != "" {
+				objs = obj.Iter(filter)
+			} else {
+				objs = obj.Iter()
+			}
+			for line := range objs {
 				table := line[0]
+				// fmt.Println(line)
+				// break
 				if fp, ok := fsd[table]; ok {
 					fp.WriteString(strings.Join(line[1:], ",") + "\n")
 				} else {
 					fsd[table], err = os.Create(table + ".csv")
 					header := obj.GetHeader(table)
+					// fmt.Println("header:", header, "\nvalue:", line)
 					header = header[:len(line)-1]
 					// fmt.Println(header, "\n----\n")
 					msg := strings.Join(header, ",") + "\n"

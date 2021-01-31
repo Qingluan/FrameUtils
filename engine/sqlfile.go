@@ -3,27 +3,28 @@ package engine
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
-	TP_MYSQL = 0
+	TP_MYSQL     = 0
 	TP_SQLSERVER = 1
-	TP_SQLITE = 2
+	TP_SQLITE    = 2
 )
 
 type SqlTxt struct {
-	obj        *bufio.Scanner
-	raw        string
-	headers    map[string]Line
-	datas      map[string][]Dict
-	cacheLines map[string][]Line
-	sqlType int
-	sqlLineEnd string
+	obj          *bufio.Scanner
+	raw          string
+	headers      map[string]Line
+	datas        map[string][]Dict
+	cacheLines   map[string][]Line
+	sqlType      int
+	sqlLineEnd   string
+	nowheader    string
+	filterheader string
 }
 
 func Sqlname(a string) string {
@@ -34,9 +35,12 @@ func Sqlname(a string) string {
 		return a[1 : len(a)-1]
 	} else if strings.HasPrefix(a, "'") && strings.HasSuffix(a, "'") {
 		return a[1 : len(a)-1]
-	// sqlserver name : example
-	} else if strings.HasPrefix(a, "N'") && strings.HasSuffix(a, "'"){
-		return a[2: len(a) -1]
+		// sqlserver name : example
+	} else if strings.HasPrefix(a, "N'") && strings.HasSuffix(a, "'") {
+		if len(a) < 3 {
+			fmt.Println("bug a:", a)
+		}
+		return a[2 : len(a)-1]
 	}
 	return a
 }
@@ -48,13 +52,28 @@ func (self *SqlTxt) ParseSqlValue(v string) (tableName string, line Line) {
 		log.Fatal("Fatal:::", v)
 	}
 	tableName = Sqlname(fsss[2])
-	fieldsPre := strings.SplitN(string(v), "(", 2)[1]
+	fieldsPre := ""
+	switch self.sqlType {
+	case TP_SQLSERVER:
+		// fieldsPre = strings.SplitN(string(v), "VALUES", 2)[1]
+		tmps := strings.SplitN(string(v), "(", 3)
+		if len(tmps) < 3 {
+			log.Fatal("Err:", tmps, "|", v)
+		}
+		fieldsPre = tmps[2]
+	default:
+		fieldsPre = strings.SplitN(string(v), "(", 2)[1]
+	}
+
 	if !strings.Contains(fieldsPre, ")") {
 		log.Fatal("Err not found:", v)
 		// return "", ""
 	}
-	for _, field := range strings.Split(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",") {
+	for _, field := range splitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",") {
 		if l := strings.TrimSpace(field); l != "" {
+			if l == "N'" {
+				fmt.Println("Bug line:", v)
+			}
 			line = append(line, Sqlname(l))
 		}
 	}
@@ -74,30 +93,21 @@ func (self *SqlTxt) GetHead(k string) Line {
 
 func (self *SqlTxt) ParseSqlHeader(v string) (tableName string, line Line) {
 
-	// fmt.Println("Header:", v)
-	defer func(){
-		switch self.sqlType{
-		case TP_SQLSERVER:
-			self.sqlLineEnd = "GO"
-		default:
-			self.sqlLineEnd = ");"
-	
-		}
-	}()
 	tableName = Sqlname(strings.Fields(v)[2])
-	if strings.Contains(tableName, "[dbo]"){
+	if strings.Contains(tableName, "[dbo]") {
 		self.sqlType = TP_SQLSERVER
 	}
 	fieldsPre := strings.SplitN(v, "(", 2)[1]
 	// fmt.Println("Header Mid:", fieldsPre)
-
-	for _, field := range strings.Split(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",") {
+	for _, field := range splitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",", "()") {
 		// fmt.Println("f:", field)
 		if l := strings.TrimSpace(field); l != "" {
 			fieldName := Sqlname(strings.Fields(l)[0])
 			line = append(line, fieldName)
 		}
 	}
+	// log.Fatal(fieldsPre, "\ntest:", line)
+	self.nowheader = tableName
 	// fmt.Println("Header Name:", tableName)
 	// fmt.Println("Header End:", line)
 	self.headers[tableName] = line
@@ -105,16 +115,32 @@ func (self *SqlTxt) ParseSqlHeader(v string) (tableName string, line Line) {
 
 }
 
-func (self *SqlTxt) Iter() <-chan Line {
+func (self *SqlTxt) switchSqlTp(data []byte) {
+	if self.sqlLineEnd == "" {
+		if bytes.Contains(data, []byte("CREATE TABLE [dbo]")) {
+			self.sqlLineEnd = "GO"
+			self.sqlType = TP_SQLSERVER
+
+		} else {
+			self.sqlLineEnd = ");"
+		}
+	}
+
+}
+
+func (self *SqlTxt) Iter(header ...string) <-chan Line {
 	ch := make(chan Line)
 	self.obj = bufio.NewScanner(strings.NewReader(self.raw))
 	if self.headers == nil {
 		self.headers = make(map[string]Line)
 	}
 
+	if header != nil {
+		self.filterheader = header[0]
+	}
 	if len(self.cacheLines) == 0 {
 		// fmt.Println("--- 0")
-		all := 0
+		// all := 0
 		self.cacheLines = make(map[string][]Line)
 		self.obj.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			if atEOF && len(data) == 0 {
@@ -123,7 +149,10 @@ func (self *SqlTxt) Iter() <-chan Line {
 			if atEOF {
 				return len(data), data, io.EOF
 			}
+			self.switchSqlTp(data)
+
 			if e := bytes.Index(data, []byte(self.sqlLineEnd)); e > 0 {
+
 				if cs := bytes.Index(data[:e+2], []byte("CREATE TABLE")); cs > 0 {
 					self.ParseSqlHeader(string(data[cs : e+2]))
 
@@ -132,11 +161,16 @@ func (self *SqlTxt) Iter() <-chan Line {
 
 				if cs := bytes.Index(data[:e+2], []byte("INSERT")); cs > 0 {
 					// fmt.Println(string(data[cs : e+1]))
-					if all%10000 == 0 {
-						logrus.Infof("count : %d/\n", all)
+					buf := data[cs : e+2]
+					if !bytes.Contains(buf, []byte("(")) || !bytes.Contains(buf, []byte(")")) {
+						// jump like sqlserver : INSERT [dbo].[xxx] ON
+						return e + 2, nil, nil
 					}
-					all++
-					return e + 1, data[cs : e+2], nil
+					// if all%100000 == 0 {
+					// 	logrus.Infof("count : %d/\n", all)
+					// }
+					// all++
+					return e + 1, buf, nil
 				}
 
 				return e + 2, nil, nil
@@ -153,6 +187,9 @@ func (self *SqlTxt) Iter() <-chan Line {
 				line := strings.TrimSpace(self.obj.Text())
 				// fmt.Println(line)
 				tbName, l := self.ParseSqlValue(line)
+				if self.filterheader != "" && tbName != self.filterheader {
+					continue
+				}
 				iterLine := append(Line{tbName}, l...)
 				if as, ok := self.cacheLines[tbName]; ok {
 					as = append(as, iterLine)
