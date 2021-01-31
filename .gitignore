@@ -14,6 +14,7 @@ console/ConsoleSearcher/ConsoleSearcher
 *.txt
 *.dat
 example
+exmaple/testsplit/testsplit
 # example/appExample/appExample
 # example/appExample/main
 # example/appExample/.*
