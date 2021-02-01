@@ -214,11 +214,11 @@ func (self *BaseObj) Match(line Line, keys ...string) bool {
 </table>
 */
 func (self *BaseObj) ToHTML() string {
-	headers := self.header(0)
-	pre := `<table><thead class="thead-dark">
+	headers := self.Header()
+	pre := `<table  class="table" ><thead class="thead-dark">
     <tr>%s
-    </tr>
-  </thead><tbody>`
+	</tr>
+</thead><tbody>`
 	hs := []string{}
 	if len(headers) > 0 {
 		for _, i := range headers {
@@ -229,10 +229,10 @@ func (self *BaseObj) ToHTML() string {
 
 	for line := range self.Iter() {
 		items := []string{}
-		for _, li := range line {
+		for _, li := range line[1:] {
 			items = append(items, fmt.Sprintf("<td data=\"%s\" >%s</td>", li, li))
 		}
 		pre += fmt.Sprintf("\n\t<tr onclick=\"click_tr(this);\" >%s</tr>", strings.Join(items, ""))
 	}
-	return pre + "</tbody></table>"
+	return pre + "\n    </tbody></table>"
 }

@@ -1,4 +1,4 @@
-package WebRender
+package web
 
 import (
 	"fmt"
@@ -10,10 +10,23 @@ import (
 )
 
 var (
-	reType       = regexp.MustCompile(`\$\{(\w+)\}`)
+	reType = regexp.MustCompile(`\$\{(\w+)\}`)
+	// JSOptionPost :
 	JSOptionPost = "method=\"POST\""
 )
 
+/*Field html field
+Tag         string `html:"tag=input"`
+Name        string `html:"name"`
+ID          string `html:"id"`
+Value       string `html:"value"`
+Type        string `html:"type=text"`
+Class       string `html:"class=form-controll"`
+Placeholder string `html:"placeholder"`
+Readonly    bool   `html:"readonly"`
+Text        string `html:"text"`
+
+*/
 type Field struct {
 	Tag         string `html:"tag=input"`
 	Name        string `html:"name"`
@@ -70,7 +83,7 @@ type BootrapInput struct {
 
 type Form map[string]Input
 
-/*ParseMultilines from str to input
+/*ToForm from str to input
 Name / type[value]
 
 ${type} : email / text/ number / password /checkbox
@@ -89,7 +102,7 @@ id / 1234 ==> <input type=num name="id" value="1234" >
 ident / id card / passport  ==> <select class="form-control" name=ident ><option>id card</option><option>passport </option></select>
 
 */
-func ParseMultilines(raws []string) (form Form) {
+func ToForm(raws []string) (form Form) {
 	form = make(Form)
 	for _, l := range raws {
 		if strings.TrimSpace(l) != "" {

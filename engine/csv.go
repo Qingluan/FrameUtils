@@ -9,6 +9,7 @@ import (
 type Csv struct {
 	raw       string
 	obj       *csv.Reader
+	Header    Line
 	tableName string
 }
 
@@ -27,6 +28,9 @@ func (self *Csv) Iter(header ...string) <-chan Line {
 			if err != nil {
 				continue
 			}
+			if c == 0 {
+				self.Header = Line(row)
+			}
 			ch <- append(Line{self.tableName}, Line(row)...)
 			c++
 		}
@@ -36,14 +40,14 @@ func (self *Csv) Iter(header ...string) <-chan Line {
 }
 
 func (self *Csv) GetHead(k string) Line {
-	return Line{self.tableName}
+	return self.Header
 }
 
 func (self *Csv) Close() error {
 	return nil
 }
 func (self *Csv) header(...int) (l Line) {
-	return
+	return self.Header
 }
 func (s *Csv) Tp() string {
 	return "csv"

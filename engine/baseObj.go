@@ -63,7 +63,7 @@ func (self *BaseObj) Header(ks ...int) (header Line) {
 		}
 	}
 	for line := range self.Iter() {
-		return line
+		return line[1:]
 	}
 	return
 }

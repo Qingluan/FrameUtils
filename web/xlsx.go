@@ -1,4 +1,4 @@
-package WebRender
+package web
 
 type Fields map[string]Field
 
