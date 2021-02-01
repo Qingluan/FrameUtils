@@ -8,6 +8,7 @@ type Xlsx struct {
 	obj         *xlsxreader.XlsxFileCloser
 	filtertable string
 	nowtable    string
+	tables      []string
 }
 
 func AddLine(r []xlsxreader.Cell) (l Line) {
@@ -32,9 +33,17 @@ func (self *Xlsx) Iter(filtertable ...string) <-chan Line {
 	if filtertable != nil {
 		self.filtertable = filtertable[0]
 	}
+	notFilter := false
+	if len(self.tables) > 0 {
+		notFilter = true
+	}
 	go func() {
 		for _, table := range self.obj.Sheets {
+
 			self.nowtable = table
+			if notFilter {
+				self.tables = append(self.tables, table)
+			}
 			if self.filtertable != "" && self.filtertable != table {
 				continue
 			}
@@ -53,6 +62,9 @@ func (self *Xlsx) Close() error {
 }
 
 func (self *Xlsx) header(k ...int) (l Line) {
+	if k != nil {
+		return self.GetHead(self.tables[k[0]])
+	}
 	return
 }
 func (s *Xlsx) Tp() string {

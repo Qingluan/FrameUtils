@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -32,10 +33,13 @@ func main() {
 	cli := false
 	frp := ""
 	dst := ""
+	out := ""
 	filter := ""
 	flag.BoolVar(&cli, "cli", false, "true to console")
 	flag.StringVar(&frp, "fr", "", "set from file .")
 	flag.StringVar(&dst, "to", "", "set to file.")
+	flag.StringVar(&out, "out", "", "output path dir.")
+
 	flag.StringVar(&filter, "grep", "", "fileter table if type is sql/xlsx.")
 	flag.Parse()
 	if cli {
@@ -83,7 +87,8 @@ func main() {
 				if fp, ok := fsd[table]; ok {
 					fp.WriteString(strings.Join(line[1:], ",") + "\n")
 				} else {
-					fsd[table], err = os.Create(table + ".csv")
+					tablePath := filepath.Join(out, table+".csv")
+					fsd[table], err = os.Create(tablePath)
 					header := obj.GetHeader(table)
 					// fmt.Println("header:", header, "\nvalue:", line)
 					header = header[:len(line)-1]

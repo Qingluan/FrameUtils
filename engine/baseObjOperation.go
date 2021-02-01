@@ -1,5 +1,10 @@
 package engine
 
+import (
+	"fmt"
+	"strings"
+)
+
 /*Join usage
 Join two Frame by keys, if not set keys use first key
 
@@ -174,4 +179,60 @@ func (self *BaseObj) Match(line Line, keys ...string) bool {
 	}
 	return false
 
+}
+
+/*
+<table class="table">
+  <thead class="thead-dark">
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">First</th>
+      <th scope="col">Last</th>
+      <th scope="col">Handle</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">1</th>
+      <td>Mark</td>
+      <td>Otto</td>
+      <td>@mdo</td>
+    </tr>
+    <tr>
+      <th scope="row">2</th>
+      <td>Jacob</td>
+      <td>Thornton</td>
+      <td>@fat</td>
+    </tr>
+    <tr>
+      <th scope="row">3</th>
+      <td>Larry</td>
+      <td>the Bird</td>
+      <td>@twitter</td>
+    </tr>
+  </tbody>
+</table>
+*/
+func (self *BaseObj) ToHTML() string {
+	headers := self.header(0)
+	pre := `<table><thead class="thead-dark">
+    <tr>%s
+    </tr>
+  </thead><tbody>`
+	hs := []string{}
+	if len(headers) > 0 {
+		for _, i := range headers {
+			hs = append(hs, fmt.Sprintf("<th scope=\"col\">%s</th>", i))
+		}
+		pre = fmt.Sprintf(pre, strings.Join(hs, "\n"))
+	}
+
+	for line := range self.Iter() {
+		items := []string{}
+		for _, li := range line {
+			items = append(items, fmt.Sprintf("<td data=\"%s\" >%s</td>", li, li))
+		}
+		pre += fmt.Sprintf("\n\t<tr onclick=\"click_tr(this);\" >%s</tr>", strings.Join(items, ""))
+	}
+	return pre + "</tbody></table>"
 }
