@@ -56,6 +56,201 @@ var click_ele = function(ele){
 };
 ```
 
+#### 复杂点的例子， for , if , function, 参数设置
+
+```golang
+// for 
+
+// Each 函数 等同于
+// for ( i= 0; i <  items.length ; i ++){
+//     ..... deal one .....
+// }
+// 
+W.Query("p").Each(func(one Js) Js {
+	return .... deal one ....
+})
+
+// If
+
+// If 函数 等同于
+// if( condition ){
+//     ..... deal one .....
+// }
+// 
+
+//   W.Query("title").Text().Eq("Hello")  ===> $("title")[0].textContent == "Hello"
+// support comparation functions :  .Eq / MoreThan / MoreLess / Than / Less / HasKey / HasAttr
+// example:
+W.If( W.Query("title").Get(0).Text().Eq("Hello") ,func(one Js) Js {
+	return .... deal one ....
+}, func(){
+	W.JsLog("no title")
+})
+
+
+// Set val
+// var val = lastJs;
+// ... do val .... 
+lastJs.WithVar(val, func(val Js) Js{
+	return .... handle val .....
+})
+
+// Set Dict
+// var val = {};
+lastJs.WithDict(val, func(val Js) Js{
+	return .... handle val .....
+})
+
+// Set Array
+// var val = [];
+lastJs.WithArray(val, func(val Js) Js{
+	return .... handle val .....
+})
+
+
+// multi set value like 
+/*
+@isLoop: if true:
+	example:
+"""
+	some = []
+	for (i =0; i < items.length; i ++){
+		tmp = {}
+		for (ki = 0 ; ki < keys.length; ki++){
+			tmp[keys[ki]] = ...some func...(items[i] ,keys[ki])
+		}
+		
+		some.push(tmp)
+	}
+"""
+	if false:
+"""
+	tmp = {}
+	for (ki = 0 ; ki < keys.length; ki++){
+		tmp[keys[ki]] = ...some func...(items[i] ,keys[ki])
+	}
+
+"""
+*/
+lastJs.MapSet("some", W.Val("items"), isloop=true, func(one W.Js, key string) W.Js {
+		return one.GetAttr(key)
+	}, keys...)
+
+
+// Post data
+
+
+/*Post :
+	@action : set url
+	@args :  map[string]string/ string / Js ; upload data
+	@isJson: bool ; if true use $.ajax()
+			$.ajax({
+				url: '%s',
+				type: 'post',
+				dataType: 'json',
+				contentType: 'application/json',
+				success: function (result) {
+				%s
+				},
+				data: JSON.stringify(%s)
+			});
+	@callback :
+		func(result Js) Js{
+			handle ... callback result
+		}
+
+# this will be compile twice .
+	by:
+		${ ${inner} } => ${ innerstring } => "endstring"
+
+$.post("${action}", json.dumps(args), function(result){
+	${ ${callback( result )} }
+	console.log(result);
+})
+*/
+W.Post("/post", "{upload_data : data}",true)
+/*
+$.ajax({
+	url: '/post',
+	type: 'post',
+	dataType: 'json',
+	contentType: 'application/json',
+	success: function (result) {
+	%s
+	},
+	data: JSON.stringify({upload_Data: data})
+});
+
+*/
+
+W.Post("/post", map[string]string{"upload_data" : "hello"},true , ...jscallback...)
+/*
+$.ajax({
+	url: '/post',
+	type: 'post',
+	dataType: 'json',
+	contentType: 'application/json',
+	success: function (result) {
+		... js callback...
+	},
+	data: JSON.stringify({"upload_Data": "hello"})
+});
+
+*/
+
+
+
+W.Post("/post", "{upload_data : data}",false,...jscallback...)
+// $.post("/post", {upload_data:data}, function(result){
+//  	...jscallback...
+//	console.log(result);
+// })
+
+
+W.Post("/post", map[string]string{"upload_data" : "Hello"},false,...jscallback...)
+// $.post("/post", {"upload_data":"data"}, function(result){
+// 		...jscallback...
+//  	console.log(result);
+// })
+
+
+
+
+// exmaple :
+jsClick = W.WithFunc(func() W.Js {
+	return W.Js("").MapSet("upload_data", W.Val("ele").Children(), true, func(one W.Js, key string) W.Js {
+		return one.GetAttr(key)
+	}, "name", "data").NewLine(W.Post("/post", W.Val("upload_data"), func(res W.Js) W.Js {
+		return W.JsLog(res.String())
+	}))
+}, "click_tr", "ele")
+fmt.Println(jsClick)
+
+```
+
+==> 
+```js
+var click_tr = function(ele){
+    ;
+    var upload_data = [];
+
+    _tmp_loop = ele.children;
+    for(i=0; i< _tmp_loop.length ; i++){
+        var __tmp_dict = {};
+        __tmp_dict["name"] = _tmp_loop[i].getAttribute("name");
+        __tmp_dict["data"] = _tmp_loop[i].getAttribute("data");
+        __tmp_dict;
+        upload_data.push(__tmp_dict);
+    };
+    $.post("/post", upload_data, function(result){
+        console.log(result);
+        console.log(result);
+    });
+    ;
+};
+
+```
+
 ### HTML Server Build
 
 ```golang

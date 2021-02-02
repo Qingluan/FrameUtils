@@ -10,7 +10,7 @@ var (
 <div class="container h-100" style="width: inherit;padding: 0px;max-width: 122000px;margin: 0px;">
 	<div class="row h-100" style="width:100%%;">
 		<div class="d-flex bd-highlight" style="width:100%%;" >
-			<div class="bd-highlight" style=" background: #6a92bb; max-width: 400px;min-width: 400px;    padding: 10px;  border-right: 1px black solid;">
+			<div class="bd-highlight" style=" background: #fdfdfd; max-width: 400px;min-width: 400px;    padding: 10px;  border-right: 1px black solid;">
 				<div class="accordion" id="accordionExample">
 					%s
 				</div>

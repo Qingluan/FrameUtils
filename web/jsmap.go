@@ -32,11 +32,50 @@ func (js Js) CCheck(codes ...string) bool {
 	return e
 }
 
+// CodeLen :
+func (js Js) CodeLen() int {
+	return len(string(js))
+}
+
+//Last return last attr / name
+func (js Js) Last() Js {
+	last := ""
+	if js.CCheck("\n") {
+		fs := strings.Split(string(js), "\n")
+		last = fs[len(fs)-1]
+	}
+	if strings.Contains(last, ".") {
+		fs := strings.Split(last, ".")
+		return Js(fs[len(fs)-1])
+	}
+	return Js(last)
+}
+
+// Lastline : get last line
+func (js Js) Lastline() Js {
+	last := ""
+	if js.CCheck("\n") {
+		fs := strings.Split(string(js), "\n")
+		last = fs[len(fs)-1]
+	} else {
+		return js
+	}
+	return Js(last)
+}
+
+// Split : split by key then get ix
+func (js Js) Split(key string, i int) Js {
+	return Js(strings.Split(string(js), key)[i])
+}
+
 // Pop : back to last
 func (js Js) Pop() Js {
 	if strings.HasPrefix(string(js), "var ") && js.CCheck("\n") {
 		fs := strings.Split(strings.TrimSpace(string(js)), "\n")
 		return Js(strings.Join(fs[1:len(fs)-1], "\n"))
+	} else if strings.Contains(string(js), "\n") && strings.HasSuffix(string(js), ";") {
+		fs := strings.Split(strings.TrimSpace(string(js)[:js.CodeLen()-1]), "\n")
+		return Js(strings.Join(fs[:len(fs)-1], "\n"))
 	}
 	fs := strings.Split(string(js), ".")
 	return Js(strings.Join(fs[1:len(fs)-1], "."))
@@ -48,8 +87,18 @@ func (js Js) CEndswithFunction(funcName string) bool {
 	// e := false
 	fs := strings.Split(string(js), ".")
 	namefs := strings.Split(fs[len(fs)-1], "(")
-	name := namefs[len(namefs)-1]
+	name := namefs[0]
+	// fmt.Println("End Function:", name)
 	return strings.TrimSpace(name) == funcName
+}
+
+//RemoveLastLine : remove last line
+func (js Js) RemoveLastLine() Js {
+	if js.CCheck("\n") {
+		fs := strings.Split(strings.TrimSpace(string(js)), "\n")
+		return Js(strings.Join(fs[:len(fs)-1], "\n"))
+	}
+	return js
 }
 
 /*If :
@@ -121,14 +170,96 @@ func (js Js) Q() Js {
 	return Js("$(" + js + ")")
 }
 
+/*Val :
+获得字符串的变量， 其实等同于  Js(valStr)
+*/
+func Val(valStr string) Js {
+	return Js(valStr)
+}
+
 // End $js + ";"
 func (js Js) End() Js {
 	return js + Js(";")
 }
 
+// JsLog : console.log(val)
+func JsLog(args ...string) Js {
+	return Val("console").Call("log", args...).End()
+}
+
 // NewLine ${js} + ";\n"
-func (js Js) NewLine() Js {
-	return js + Js(";\n")
+func (js Js) NewLine(then ...interface{}) Js {
+	if then == nil {
+		return js + Js(";\n")
+	}
+	switch then[0].(type) {
+	case Js:
+		return js + Js(";\n") + then[0].(Js)
+	default:
+		return js + Js(";\n") + Js(fmt.Sprint(then[0]))
+	}
+}
+
+// ForVal Js()
+func (js Js) ForVal(valName string) Js {
+	return js.NewLine() + Val(valName)
+}
+
+// func (js Js) Then(other Js) Js{
+// 	return js + other
+// }
+
+// Text : .textContent
+func (js Js) Text() Js {
+	return js + Js(".textContent")
+}
+
+/*MapSet doc :
+@isLoop: if true:
+	example:
+"""
+	some = []
+	for (i =0; i < items.length; i ++){
+		tmp = {}
+		for (ki = 0 ; ki < keys.length; ki++){
+			tmp[keys[ki]] = ...some func...(items[i] ,keys[ki])
+		}
+
+		some.push(tmp)
+	}
+"""
+	if false:
+"""
+	tmp = {}
+	for (ki = 0 ; ki < keys.length; ki++){
+		tmp[keys[ki]] = ...some func...(items[i] ,keys[ki])
+	}
+
+"""
+*/
+func (js Js) MapSet(valName string, itemsName Js, isLoop bool, mapFunc func(one Js, key string) Js, keys ...string) Js {
+	if isLoop {
+		return js.NewLine().WithArray(valName, func(val Js) Js {
+			return itemsName.Each(func(one Js) Js {
+				return Js("").WithDict("__tmp_dict", func(tmp_dict Js) Js {
+					for _, key := range keys {
+						tmp_dict = tmp_dict.SetVal(key, mapFunc(one, key))
+					}
+					return tmp_dict
+				}).RemoveLastLine().ForVal(valName).Call("push", "__tmp_dict")
+
+			})
+		})
+	}
+	return js.NewLine().WithDict(valName, func(val Js) Js {
+
+		return itemsName.Each(func(one Js) Js {
+			for _, key := range keys {
+				val = val.SetVal(key, mapFunc(one, key))
+			}
+			return val.Pop()
+		})
+	})
 }
 
 // AsVarThen var name = ${js};\n name
@@ -250,9 +381,14 @@ func (js Js) Less(target interface{}) Js {
 	}
 }
 
-//A : get attr with : ${js}.name
-func (js Js) A(name string) Js {
+//Attr : get attr with : ${js}.name
+func (js Js) Attr(name string) Js {
 	return Js(string(js) + "." + name)
+}
+
+//GetAttr :
+func (js Js) GetAttr(name string) Js {
+	return js + Js(fmt.Sprintf(".getAttribute(\"%s\")", name))
 }
 
 // AsVar : var name = ${js};\n
@@ -265,6 +401,17 @@ func (js Js) WithVar(varName string, then func(val Js) Js) Js {
 	return Js("var "+strings.ReplaceAll(varName, " ", "_")+" = "+string(js)+";\n") + then(Js(strings.ReplaceAll(varName, " ", "_")))
 }
 
+// WithDict : var name = {};\n
+// do some for this dict
+func (js Js) WithDict(varName string, then func(val Js) Js) Js {
+	return js + Js("var "+strings.ReplaceAll(varName, " ", "_")) + Js(" = {};\n") + then(Js(strings.ReplaceAll(varName, " ", "_")))
+}
+
+//WithArray :
+func (js Js) WithArray(varName string, then func(arrval Js) Js) Js {
+	return js + Js("var "+strings.ReplaceAll(varName, " ", "_")) + Js(" = [];\n") + then(Js(strings.ReplaceAll(varName, " ", "_")))
+}
+
 // Val : ${js}.val()
 func (js Js) Val() Js {
 	return js + Js(".val()")
@@ -275,8 +422,28 @@ func (js Js) Intendence() Js {
 	return Js("    " + strings.ReplaceAll(string(js), "\n", "\n    "))
 }
 
-// SetAttrValue : ${js}.setAttribute("name", "value") ; if value is string  else ${js}.setAttribute("name", value)
-func (js Js) SetAttrValue(name, value interface{}) Js {
+/*SetVal :
+${js}["name"] = "${value}";
+${js}
+
+*/
+func (js Js) SetVal(name, value interface{}) Js {
+	switch value.(type) {
+	case Js:
+		// pre := "_tmpvalue = " + value.(Js).NewLine()
+		// if value.(Js).CCheck("\n") {
+		// 	panic("include \n in setattr() ")
+		// }
+		// log.Println("V:", js)
+		return js + Js(fmt.Sprintf("[\"%s\"] = %s;\n", name, value)) + js.Lastline().Split("[", 0)
+	default:
+		return js + Js(fmt.Sprintf("[\"%s\"] =\"%s\";\n", name, value)) + js.Lastline().Split("[", 0)
+
+	}
+}
+
+// SetAttr : ${js}.setAttribute("name", "value") ; if value is string  else ${js}.setAttribute("name", value)
+func (js Js) SetAttr(name, value interface{}) Js {
 	switch value.(type) {
 	case Js:
 		// pre := "_tmpvalue = " + value.(Js).NewLine()
@@ -341,7 +508,48 @@ func (js Js) AppendNode(nodeName interface{}) Js {
 	}
 }
 
+// Children : get child node by ix
+func (js Js) Children(ix ...int) Js {
+	if ix == nil {
+		return js + Js(".children")
+	}
+	return js + Js(fmt.Sprintf(".children[%d]", ix))
+}
+
+// Lengnth : get loop's count
+func (js Js) Lengnth() Js {
+	return js + Js(".length")
+}
+
+// Each : loop if ${self} can loop
+func (js Js) Each(eachOne func(Js) Js) Js {
+	pre := fmt.Sprintf(`
+_tmp_loop = %s;
+for(i=0; i< %s ; i++){
+%s
+}`, js, Js("_tmp_loop").Lengnth(), eachOne(Js("_tmp_loop[i]")).End().Intendence())
+	return Js(pre)
+}
+
 /*Post :
+	@action : set url
+	@args :  map[string]string/ string / Js ; upload data
+	@isJson: bool ; if true use $.ajax()
+			$.ajax({
+				url: '%s',
+				type: 'post',
+				dataType: 'json',
+				contentType: 'application/json',
+				success: function (result) {
+				%s
+				},
+				data: JSON.stringify(%s)
+			});
+	@callback :
+		func(result Js) Js{
+			handle ... callback result
+		}
+
 # this will be compile twice .
 	by:
 		${ ${inner} } => ${ innerstring } => "endstring"
@@ -351,25 +559,45 @@ $.post("${action}", json.dumps(args), function(result){
 	console.log(result);
 })
 */
-func Post(action string, args interface{}, callback ...func(j Js) Js) Js {
+func Post(action string, args interface{}, isJSON bool, callback ...func(j Js) Js) Js {
 	var data []byte
 	switch args.(type) {
 	case map[string]string:
 		data, _ = json.Marshal(args)
 	case string:
 		data = []byte(args.(string))
+
+	case Js:
+		data = []byte(args.(Js).String())
 	}
 	postArgs := string(data)
 	jsfunction := ""
 	if callback != nil {
 		jsfunction = callback[0](Js("result")).Intendence().String()
 	}
+	if isJSON {
+		base := fmt.Sprintf(`$.ajax({
+	url: '%s',
+	type: 'post',
+	dataType: 'json',
+	contentType: 'application/json',
+	success: function (result) {
+	%s
+	},
+	data: JSON.stringify(%s)
+});
+
+`, action, jsfunction, postArgs)
+		return Js(base)
+
+	}
 	base := fmt.Sprintf(`$.post("%s", %s, function(result){
 %s
-    console.log(result);
+	console.log(result);
 });
 `, action, postArgs, jsfunction)
 	return Js(base)
+
 }
 
 /*Query :
