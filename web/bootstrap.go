@@ -37,7 +37,8 @@ func BuildHTML(body string, jsArea ...string) string {
 		<script >%s</script>
 		<script >%s</script>
 		<script >%s</script>
+		<script jsname="base-functions">%s</script>
 		<script >%s</script>
 	</body>
-</html>`, Jquery, BootstrapPopJS, BootstrapJS, js)
+</html>`, Jquery, BootstrapPopJS, BootstrapJS, baseFunctionJS, js)
 }

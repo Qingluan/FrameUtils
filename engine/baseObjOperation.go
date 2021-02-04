@@ -213,12 +213,17 @@ func (self *BaseObj) Match(line Line, keys ...string) bool {
   </tbody>
 </table>
 */
-func (self *BaseObj) ToHTML() string {
+func (self *BaseObj) ToHTML(tableID ...string) string {
+	ID := "default-table"
+
+	if tableID != nil {
+		ID = tableID[0]
+	}
 	headers := self.Header()
-	pre := `<table  class="table" ><thead class="thead-dark">
+	pre := fmt.Sprintf(`<table  class="table" id="%s" ><thead class="thead-dark">
     <tr>%s
 	</tr>
-</thead><tbody>`
+</thead><tbody>`, ID)
 	hs := []string{}
 	hasHeader := false
 	if len(headers) > 0 {
@@ -228,18 +233,22 @@ func (self *BaseObj) ToHTML() string {
 		}
 		pre = fmt.Sprintf(pre, strings.Join(hs, "\n"))
 	}
-
+	row := -1
 	for line := range self.Iter() {
+		row++
+
 		items := []string{}
+		col := -1
 		for i, li := range line[1:] {
 			key := ""
+			col++
 			if hasHeader {
 				key = headers[i]
 			}
 
-			items = append(items, fmt.Sprintf("<td data=\"%s\" key=\"%s\" >%s</td>", li, key, li))
+			items = append(items, fmt.Sprintf("<td data-row=\"%d\" data-col=\"%d\" data=\"%s\" key=\"%s\" >%s</td>", row, col, li, key, li))
 		}
-		pre += fmt.Sprintf("\n\t<tr onclick=\"click_tr(this);\" >%s</tr>", strings.Join(items, ""))
+		pre += fmt.Sprintf("\n\t<tr data-row=\"%d\" onclick=\"click_tr(this);\" >%s</tr>", row, strings.Join(items, ""))
 	}
 	return pre + "\n    </tbody></table>"
 }
