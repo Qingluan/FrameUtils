@@ -2,6 +2,9 @@ package web
 
 import (
 	"fmt"
+	"net/http"
+
+	"github.com/Qingluan/FrameUtils/webevent"
 )
 
 const (
@@ -21,11 +24,17 @@ const (
 // BuildHTML : get base bootstrap html
 func BuildHTML(body string, jsArea ...string) string {
 	js := ""
+	extend := ""
+	for _, v := range RegistedWebSocketFuncs {
+		extend += v.String() + "\n"
+	}
 	if jsArea != nil {
 		js = jsArea[0]
 
 		// log.Println(js)
 	}
+
+	http.HandleFunc("/api", webevent.ApiSocketHandle)
 	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 	<head>
@@ -40,5 +49,5 @@ func BuildHTML(body string, jsArea ...string) string {
 		<script jsname="base-functions">%s</script>
 		<script >%s</script>
 	</body>
-</html>`, Jquery, BootstrapPopJS, BootstrapJS, baseFunctionJS, js)
+</html>`, Jquery, BootstrapPopJS, BootstrapJS, baseFunctionJS+extend, js)
 }

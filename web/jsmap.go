@@ -617,36 +617,13 @@ func Query(selector interface{}) Js {
 	}
 }
 
-// WithWebSocket : define how to deal onMessage in server and front
-func WithWebSocket(onMessage func(id, tp, msg string) string, onBrowser func(comJs Js) Js) Js {
+// RegistWebSocketFunc : define how to deal onMessage in server and front
+func RegistWebSocketFunc(name string, onBrowser func(comJs Js) Js) Js {
 	base := fmt.Sprintf(`
-var ws = new WebSocket("ws://" + window.location.host + "/api");
-var SendAction;
-ws.onopen = function() {
-	SendAction("hello","hello","hello world!");
+actions["%s"] = function(data){
+%s	
 }
-
-
-window.addEventListener("load", function(evt) {
-	ws.onmessage = function(event) {
-		var m = JSON.parse(event.data);
-		console.debug("Received message", m.id, m.tp, m.value);
-%s
-	}
-	ws.onerror = function(event) {
-		console.debug(event)
-	}
-	
-})
-
-SendAction = function(id, tp , value){
-	ws.send(JSON.stringify({
-		id:id,
-		tp:tp,
-		value:value
-	}))
-}
-	`, onBrowser("m").Intendence().Intendence())
-	WebsocketOnMessage = onMessage
+`, name, onBrowser("data").Intendence())
+	RegistedWebSocketFuncs[name] = Js(base)
 	return Js(base)
 }

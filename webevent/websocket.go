@@ -66,6 +66,29 @@ func FlowSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func ApiSocketHandle(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer c.Close()
+	go GlobalMessageListen(c)
+	for {
+		data := new(FlowData)
+		err := c.ReadJSON(data)
+		if err != nil {
+			log.Println("read error:", err)
+			break
+		}
+		log.Printf("[action] : id:%s tp:%s value: %s", data.Id, data.Tp, data.Value)
+		if callback, ok := RegistedAction[data.Id]; ok {
+			go callback(*data)
+		}
+
+	}
+}
+
 func handleHome(w http.ResponseWriter, r *http.Request) {
 	homeTemplate.Execute(w, "ws://"+r.Host+"/flow")
 }
