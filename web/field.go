@@ -62,8 +62,10 @@ type BootrapInput struct {
 	Placeholder string `json:"placeholder"`
 	Value       string `json:"value"`
 	Type        string `json:"type"`
-	Describle   string `json:"desc"`
-	Label       *struct {
+
+	Style     string `html:"style"`
+	Describle string `json:"desc"`
+	Label     *struct {
 		Tag  string `html:"tag=label"`
 		Text string `html:"text"`
 	}
@@ -72,6 +74,7 @@ type BootrapInput struct {
 		Name        string `html:"name"`
 		ID          string `html:"id"`
 		Value       string `html:"value"`
+		Style       string `html:"style"`
 		Type        string `html:"type=text"`
 		Class       string `html:"class=form-controll"`
 		Placeholder string `html:"placeholder"`
@@ -123,6 +126,7 @@ func parse(raw string) (name string, boot BootrapInput) {
 		Name        string `html:"name"`
 		ID          string `html:"id"`
 		Value       string `html:"value"`
+		Style       string `html:"style"`
 		Type        string `html:"type=text"`
 		Class       string `html:"class=form-controll"`
 		Placeholder string `html:"placeholder"`

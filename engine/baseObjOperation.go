@@ -220,12 +220,10 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 		ID = tableID[0]
 	}
 	headers := self.Header()
-	pre := fmt.Sprintf(`<table  class="table" id="%s" ><thead class="thead-dark">
-    <tr>%s
-	</tr>
-</thead><tbody>`, ID)
+	pre := fmt.Sprintf(`<table  class="table" id="%s" ><thead class="thead-dark">`, ID)
 	hs := []string{}
 	hasHeader := false
+	pre += "<tr>%s</tr></thead><tbody>"
 	if len(headers) > 0 {
 		hasHeader = true
 		for _, i := range headers {
@@ -233,6 +231,7 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 		}
 		pre = fmt.Sprintf(pre, strings.Join(hs, "\n"))
 	}
+
 	row := -1
 	for line := range self.Iter() {
 		row++
@@ -247,6 +246,11 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 			}
 
 			items = append(items, fmt.Sprintf("<td data-row=\"%d\" data-col=\"%d\" data=\"%s\" key=\"%s\" >%s</td>", row, col, li, key, li))
+		}
+		if hasHeader {
+			hasHeader = false
+			continue
+
 		}
 		pre += fmt.Sprintf("\n\t<tr data-row=\"%d\" onclick=\"click_tr(this);\" >%s</tr>", row, strings.Join(items, ""))
 	}

@@ -316,6 +316,8 @@ func (js Js) Eq(target interface{}) Js {
 	switch target.(type) {
 	case Js:
 		return Js("(") + js + Js(") == ") + target.(Js)
+	case int:
+		return Js("(") + js + Js(") == ") + Js(fmt.Sprintf("%d", target.(int)))
 	default:
 		return Js("(") + js + Js(") == \""+target.(string)+"\"")
 	}
