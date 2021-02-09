@@ -17,8 +17,8 @@ var (
 	METHOD_POST = 0x01
 	METHOD_GET  = 0x10
 
-	ServerPagesStack = map[string]Page{}
-	HomePage         = Page{
+	AllPages = map[string]*Page{}
+	HomePage = Page{
 		Route:  "/",
 		Method: METHOD_GET,
 		Body:   "",
@@ -29,10 +29,12 @@ var (
 	}
 )
 
+// Page : web server page
 type Page struct {
 	Route    string
 	Method   int
 	Body     string
+	Style    map[string]string
 	Handler  func(w http.ResponseWriter, r *http.Request)
 	JsEvents map[string]JSEvent
 	ExtendJS []Js
@@ -41,6 +43,20 @@ type Page struct {
 // PreparedRoute : regist a func to map
 func PreparedRoute(route string, fun func(w http.ResponseWriter, r *http.Request)) {
 	preparedFuncs[route] = fun
+}
+
+func (page *Page) AddBody(body interface{}) *Page {
+
+	switch body.(type) {
+	case string:
+		page.Body = body.(string)
+	case Widget:
+		page.Body = body.(Widget).String()
+	default:
+		L("Warrning", "add body", "body is not Widget/string")
+		return page
+	}
+	return page
 }
 
 /*OnEvent :
@@ -54,24 +70,49 @@ func PreparedRoute(route string, fun func(w http.ResponseWriter, r *http.Request
 		EVENT_FOCUS = 2
 
 */
-func (page Page) OnEvent(IDOrWidget Widget, jsBody Js, toggleMethod int, callback ...func(flowData FlowData, c *websocket.Conn)) {
+func (page *Page) OnEvent(IDOrWidget interface{}, jsBody Js, toggleMethod int, callback ...func(flowData FlowData, c *websocket.Conn)) *Page {
 	method := toggleMethod
 	// if toggleMethod != nil {
 	// 	method = toggleMethod[0]
 	// }
-
-	L(page.Route, "Event", "regist : "+IDOrWidget.GetID(), method)
-	page.JsEvents[IDOrWidget.GetID()] = JSEvent{
+	ID := ""
+	switch IDOrWidget.(type) {
+	case string:
+		ID = IDOrWidget.(string)
+	case Widget:
+		ID = IDOrWidget.(Widget).GetID()
+	default:
+		L(page.Route, "Err On Init", "on Event: widget can not be ID or not string.")
+		return page
+	}
+	L(page.Route, "Event", "regist : "+ID, method)
+	page.JsEvents[ID] = JSEvent{
 		Body:   jsBody,
 		Toogle: method,
 	}
 	if callback != nil {
-		RegistWebSocketCallback(IDOrWidget.GetID(), callback[0])
+		RegistWebSocketCallback(ID, callback[0])
 	}
+	return page
+}
+
+func (page *Page) AddStyle(selector, cssbody string) *Page {
+	page.Style[selector] = cssbody
+	return page
+}
+
+func (page *Page) OnWebsocket(id string, call func(flow FlowData, c *websocket.Conn)) *Page {
+	RegistWebSocketCallback(id, call)
+	return page
+}
+
+func (page *Page) OnPost(call func(w http.ResponseWriter, r *http.Request)) *Page {
+	page.Handler = call
+	return page
 }
 
 // RenderPage : get base bootstrap html
-func (page Page) RenderPage(jsArea ...string) {
+func (page *Page) RenderPage(jsArea ...string) *Page {
 	js := ""
 	extend := ""
 	for _, v := range RegistedWebSocketFuncs {
@@ -93,43 +134,54 @@ func (page Page) RenderPage(jsArea ...string) {
 		js += "\n" + j.String()
 	}
 	http.HandleFunc(page.Route, func(w http.ResponseWriter, r *http.Request) {
-		if page.Handler != nil {
-			page.Handler(w, r)
-		}
-		if page.Method&METHOD_GET == METHOD_GET {
-			h := fmt.Sprintf(`<!DOCTYPE html>
-		<html>
-			<head>
-				<meta charset="utf-8">
-				<style type="text/css" >%s</style>
-			</head>
-			<body class="h-100" style="        position: absolute; width:100%%;">
-		`, BootstrapCSS) + page.Body + fmt.Sprintf(`
-				<script >%s</script>
-				<script >%s</script>
-				<script >%s</script>
-				<script jsname="base-functions">%s</script>
-				<script >%s</script>
-			</body>
-		</html>`, Jquery, BootstrapPopJS, BootstrapJS, baseFunctionJS+extend, js)
-			fmt.Fprint(w, h)
+
+		switch r.Method {
+		case "GET":
+			if page.Method&METHOD_GET == METHOD_GET {
+				AllStyle := ""
+				for name, css := range page.Style {
+					AllStyle += fmt.Sprintf("%s{\n%s\n};", name, css)
+				}
+				h := fmt.Sprintf(`<!DOCTYPE html>
+			<html>
+				<head>
+					<meta charset="utf-8">
+					<style type="text/css" >%s</style>
+					<style type="text/css" custome="true" >%s</style>
+				</head>
+				<body class="h-100" style="        position: absolute; width:100%%;">
+			`, AllStyle, BootstrapCSS) + page.Body + fmt.Sprintf(`
+					<script >%s</script>
+					<script >%s</script>
+					<script >%s</script>
+					<script jsname="base-functions">%s</script>
+					<script >%s</script>
+				</body>
+			</html>`, Jquery, BootstrapPopJS, BootstrapJS, baseFunctionJS+extend, js)
+				fmt.Fprint(w, h)
+			}
+		case "POST":
+			if page.Handler != nil {
+				page.Handler(w, r)
+			}
 		}
 
 	})
+	return page
 }
 
 func StartServer(listenAddr string) {
 	http.HandleFunc("/api", ApiSocketHandle)
-	links := map[string]string{}
-	for name := range ServerPagesStack {
+	links := map[string]string{"/Home": "/"}
+	for name := range AllPages {
 		links[name] = name
 	}
 
-	search := SearchWidget{
+	search := &SearchWidget{
 		ID: "SearchInput",
 		TP: "search",
 	}
-	search.Margin("", 30)
+	search.Margin("", 10)
 	container := ColsContainer{
 		Links:   links,
 		Content: search.String(),
@@ -145,8 +197,20 @@ func StartServer(listenAddr string) {
 		})
 	}
 	HomePage.RenderPage()
-	for _, page := range ServerPagesStack {
+	for _, page := range AllPages {
 		page.RenderPage()
 	}
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
+}
+
+func SetRouteStyle(route, cssselector, cssbody string) {
+	AllPages[route].AddStyle(cssselector, cssbody)
+}
+
+func AddPageWithNoBody(route string) *Page {
+	page := &Page{
+		Route: route,
+	}
+	AllPages[route] = page
+	return page
 }

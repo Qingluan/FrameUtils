@@ -15,7 +15,7 @@ var (
 					%s
 				</div>
 			</div>
-			<div class="m-6 flex-fill bd-highlight;  padding: 10px;">
+			<div class="m-6 flex-fill bd-highlight" style="padding: 10px;">
 				%s
 			</div>
 		</div>

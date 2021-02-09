@@ -81,7 +81,7 @@ var actions = {
 	},
 	UpdateTable:function(data){
 		id = data.id
-		value = data.value
+		value = JSON.parse(data.value)
 		for ( i = 0; i < value.length; i ++){
 			locTd = $("tr[data-row="+ value[i].row +"]>td[data-col=" + value[i].col + "]")
 			locTd.text(value[i].data)

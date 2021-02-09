@@ -33,10 +33,11 @@ type Field struct {
 	ID          string `html:"id"`
 	Value       string `html:"value"`
 	Type        string `html:"type=text"`
-	Class       string `html:"class=form-controll"`
+	Class       string `html:"class=form-control"`
 	Placeholder string `html:"placeholder"`
 	Readonly    bool   `html:"readonly"`
 	Text        string `html:"text"`
+	Style       string `html:"style"`
 	Subs        []Field
 }
 
@@ -76,7 +77,7 @@ type BootrapInput struct {
 		Value       string `html:"value"`
 		Style       string `html:"style"`
 		Type        string `html:"type=text"`
-		Class       string `html:"class=form-controll"`
+		Class       string `html:"class=form-control"`
 		Placeholder string `html:"placeholder"`
 		Readonly    bool   `html:"readonly"`
 		Text        string `html:"text"`
@@ -128,7 +129,7 @@ func parse(raw string) (name string, boot BootrapInput) {
 		Value       string `html:"value"`
 		Style       string `html:"style"`
 		Type        string `html:"type=text"`
-		Class       string `html:"class=form-controll"`
+		Class       string `html:"class=form-control"`
 		Placeholder string `html:"placeholder"`
 		Readonly    bool   `html:"readonly"`
 		Text        string `html:"text"`
@@ -229,6 +230,7 @@ func (boot BootrapInput) String() string {
 		boot.Input.Placeholder = boot.Placeholder
 
 	}
+	L("DEGUG", "style", boot.Input.Style)
 	return HTML.MarshalHTML(boot, "\t")
 
 }
