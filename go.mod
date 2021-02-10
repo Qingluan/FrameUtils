@@ -3,7 +3,7 @@ module github.com/Qingluan/FrameUtils
 go 1.14
 
 require (
-	github.com/Qingluan/jupyter v1.0.2 // indirect
+	github.com/Qingluan/jupyter v1.0.3
 	github.com/asticode/go-astikit v0.17.0
 	github.com/asticode/go-astilectron v0.22.3
 	github.com/c-bata/go-prompt v0.2.5

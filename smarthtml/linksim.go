@@ -1,9 +1,14 @@
 package smarthtml
 
 import (
+	"log"
 	"net/url"
+	"path/filepath"
 	"regexp"
+	"sort"
+	"strings"
 
+	"github.com/Qingluan/FrameUtils/web"
 	"github.com/Qingluan/jupyter/http"
 )
 
@@ -13,6 +18,7 @@ var (
 
 type UrlSim struct {
 	host    string
+	title   string
 	len     int
 	w       int
 	rank    int
@@ -21,24 +27,30 @@ type UrlSim struct {
 	structs []string
 }
 
-func AsUrlSim(urlstr string) (u *UrlSim) {
+func AsUrlSim(urlstr string, title ...string) (u *UrlSim) {
 
 	u = new(UrlSim)
 	u.url = urlstr
 	u.len = len(urlstr)
-	f, _ := url.Parse(urlstr)
+	f, err := url.Parse(urlstr)
+	if err != nil {
+		log.Fatal("err url:", urlstr)
+	}
 	u.host = f.Host
 	u.structs = NW.Split(urlstr, -1)
 	u.no_w = NW.FindAllString(urlstr, -1)
 	u.rank = len(u.structs)
+	if title != nil {
+		u.title = title[0]
+	}
 	return
 }
 
 func min(a, b int) int {
-	if a < b {
-		return b
-	} else {
+	if a <= b {
 		return a
+	} else {
+		return b
 	}
 }
 
@@ -46,19 +58,46 @@ func max(a, b interface{}) interface{} {
 	switch a.(type) {
 	case int:
 		if a.(int) < b.(int) {
-			return a
-		} else {
 			return b
+		} else {
+			return a
 		}
 	case []interface{}:
 		if len(a.([]interface{})) < len(b.([]interface{})) {
-			return a
-		} else {
 			return b
+		} else {
+			return a
 		}
 	default:
 		panic("can not as compare")
 	}
+}
+
+func AndSimHash(a, b string) float32 {
+	if a == "" || b == "" {
+		return 0
+	}
+	ml := min(len(a), len(b))
+	max := max(len(a), len(b)).(int)
+	core := 0
+	for i := 0; i < ml; i++ {
+		if a[i] != b[i] {
+			break
+		}
+		core++
+	}
+	return float32(core) / float32(max)
+}
+func (u *UrlSim) SetTitle(title string) {
+	u.title = title
+}
+
+func (u *UrlSim) GetTitle() string {
+	return strings.TrimSpace(u.title)
+}
+
+func (u *UrlSim) GetUrl() string {
+	return u.url
 }
 
 func (u *UrlSim) Sub(other interface{}) (score float32) {
@@ -82,29 +121,91 @@ func (u *UrlSim) Sub(other interface{}) (score float32) {
 
 	score = 1 - (float32(sam) / float32(max(u.len, u2.len).(int)))
 	if score > 0.4 {
-		mms := min(len(self.structs), len(other.structs))
-		ssam := 0
+		mms := min(len(u.structs), len(u2.structs))
+		var ssam float32
 		for i := 0; i < mms; i++ {
-			if self.structs[i] == other.structs[i] {
-				ssam += 1
+			if u.structs[i] == u2.structs[i] {
+				ssam += float32(1)
 			} else {
-				ssam += (And(u.structs[i])(other.structs[i])) / len(set(self.structs[i])|set(other.structs[i])))
+				ssam += AndSimHash(u.structs[i], u2.structs[i])
 
 			}
 		}
-		score = 1 - (float32(ssam) / float32(max(len(self.structs), len(other.structs))))
+		score = 1 - (float32(ssam) / float32(max(len(u.structs), len(u2.structs)).(int)))
 	}
 	return
 }
 
-func SmartLinksim(url string, proxy interface{}) (links [][]string) {
+type FilterOption struct {
+	Rank     int
+	Distance float32
+	Proxy    interface{}
+}
+
+// SmartLinksim
+func SmartExtractLinks(urlstr string, filters ...FilterOption) (links [][]*UrlSim) {
 	sess := http.NewSession()
-	res, err := sess.Get(url, proxy)
+	filter := FilterOption{
+		Rank:     3,
+		Distance: 0.3,
+		Proxy:    nil,
+	}
+	if filters != nil {
+		filter = filters[0]
+	}
+	res, err := sess.Get(urlstr, filter.Proxy)
 	if err != nil {
 		return
 	}
+	urlsm := map[string]string{}
+	f, _ := url.Parse(urlstr)
+	basehost := f.Host
 	res.CssSelect("a[href]", func(i int, s *http.Selection) {
+		if href, ok := s.Attr("href"); ok {
+			href = strings.TrimSpace(href)
+			if strings.HasPrefix(href, "/") {
+				href = filepath.Join(basehost, href)
+				urlsm[href] = s.Text()
+			} else if strings.HasPrefix(href, "http") {
+				urlsm[href] = s.Text()
+			} else if strings.HasPrefix(href, "javascript:;") {
+			} else {
+				web.L("pass", href, "pass")
+			}
+			// fmt.Println(s.Text())
 
+		}
 	})
+
+	// links = make(map[string][]string)
+	urls := []*UrlSim{}
+	for i, v := range urlsm {
+		urls = append(urls, AsUrlSim(i, v))
+	}
+	for no, ui := range urls {
+		// ui := AsUrlSim(i)
+		tmp := []*UrlSim{}
+		for _, ui2 := range urls[no:] {
+			if ui.url == ui2.url {
+				continue
+			}
+			d := ui.Sub(ui2)
+			if d < filter.Distance {
+				tmp = append(tmp, ui2)
+			}
+		}
+		if len(tmp) > 3 {
+			links = append(links, tmp)
+		}
+	}
+
+	sort.Slice(links, func(i, j int) bool {
+		return len(links[i]) < len(links[j])
+	})
+	// sort.SliceSort(links, func(i, j int) bool {
+	// 	return len(links[i]) > len(links[j])
+	// })
+	ff := min(filter.Rank, len(links))
+	links = links[len(links)-ff:]
 	return
 }
