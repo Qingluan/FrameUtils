@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -25,6 +26,7 @@ type Base interface {
 	Close() error
 	Tp() string
 }
+
 type Obj interface {
 	Search(key string) []Line
 	SearchTo(key string, linesChan chan []Line)
@@ -47,6 +49,10 @@ func (line Line) Filter(each func(int, string) bool) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+func (line Line) Push(i interface{}) {
+	line = append(line, fmt.Sprintf("%v", i))
 }
 
 func (line Line) FromKey(key Line) (d Dict) {
