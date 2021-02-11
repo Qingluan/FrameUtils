@@ -1,18 +1,14 @@
 package engine
 
 type EmptyBaseClass struct {
-	arrays []Line
+	Arrays []Line
 }
 
 func (empty EmptyBaseClass) Iter(header ...string) <-chan Line {
 	ch := make(chan Line)
 	go func() {
-		for _, l := range empty.arrays {
-			line := Line{}
-			for _, i := range l {
-				line.Push(i)
-			}
-			ch <- line
+		for _, l := range empty.Arrays {
+			ch <- append(Line{""}, l...)
 		}
 		close(ch)
 	}()
@@ -20,12 +16,23 @@ func (empty EmptyBaseClass) Iter(header ...string) <-chan Line {
 }
 
 func (empty EmptyBaseClass) Close() error {
-	empty.arrays = []Line{}
+	empty.Arrays = []Line{}
 	return nil
 }
 
+func (empty EmptyBaseClass) Tp() string {
+	return "Empty"
+}
+
 func (empty EmptyBaseClass) header(keylength ...int) (l Line) {
-	if len(empty.arrays) > 0 {
-		l = empty.arr
+	if len(empty.Arrays) > 0 {
+		if keylength != nil {
+			l.Push(empty.Arrays[0][0])
+		} else {
+			for _, f := range empty.Arrays[0] {
+				l.Push(f)
+			}
+		}
 	}
+	return
 }

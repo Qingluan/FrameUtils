@@ -51,8 +51,10 @@ func (line Line) Filter(each func(int, string) bool) (int, bool) {
 	return -1, false
 }
 
-func (line Line) Push(i interface{}) {
-	line = append(line, fmt.Sprintf("%v", i))
+func (line *Line) Push(is ...interface{}) {
+	for _, i := range is {
+		*line = append(*line, fmt.Sprintf("%v", i))
+	}
 }
 
 func (line Line) FromKey(key Line) (d Dict) {

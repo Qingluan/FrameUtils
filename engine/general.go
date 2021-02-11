@@ -1,15 +1,20 @@
 package engine
 
 type ArraysObj struct {
-	arrays [][]interface{}
+	EmptyBaseClass
+	// Arrays []Line
 }
 
-func (array ArraysObj) Close()
+func FromArrays(doubleArray [][]string) Obj {
 
-func FromArrays(doubleArray [][]interface{}) Obj {
+	arrays := []Line{}
+	for _, v := range doubleArray {
+		arrays = append(arrays, Line(v))
+	}
 	return &BaseObj{
-		ArraysObj{
-			arrays: doubleArray,
+		EmptyBaseClass{
+			Arrays: arrays,
 		},
 	}
+
 }

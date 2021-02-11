@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	"github.com/Qingluan/FrameUtils/HTML"
+	"github.com/gorilla/websocket"
 )
 
 type Widget interface {
 	String() string
 	API() string
 	GetID() string
+	Event() (string, string, Js, func(flowData FlowData, c *websocket.Conn))
 	Margin(postion string, num interface{})
 }
 
@@ -19,33 +21,60 @@ type InputWidgets interface {
 }
 
 type InputWidget struct {
-	ID    string
-	TP    string
-	Style string
+	ID      string
+	TP      string
+	Style   string
+	Eventjs JSEvent
 }
 
-func (input *SearchWidget) Val() Js {
+func (input InputWidget) Event() (id string, method string, js Js, callback func(flowData FlowData, c *websocket.Conn)) {
+	js = Js(input.Eventjs.String())
+	method = input.Eventjs.Method()
+	id = input.ID
+	if input.Eventjs.Callback != nil {
+		callback = input.Eventjs.Callback
+	}
+	return
+}
+
+func (input InputWidget) Val() Js {
 	return Query("#" + input.ID).Val()
 }
 
-func (input *SearchWidget) API() string {
+func (input InputWidget) API() string {
 	return input.Val().WithVar("data", func(val Js) Js {
 		return Js(fmt.Sprintf("SendAction(\"%s\", \"%s\", data)", input.ID, input.TP))
 	}).String()
 }
 
 type SearchWidget struct {
-	ID    string `html:"id"`
-	TP    string
-	Style string `html:"style"`
+	InputWidget
 }
 
-func (search *SearchWidget) GetID() string {
+func (search InputWidget) GetID() string {
 	return search.ID
 }
-
-func (search *SearchWidget) Margin(postion string, nums interface{}) {
+func (search InputWidget) OnEvent(toggle int, howToDoVal ...func(id string, val Js) Js) InputWidget {
+	self := &search
+	self.Eventjs.Toogle = toggle
+	if howToDoVal != nil {
+		self.Eventjs.Body = self.Val().WithVar("data", func(val Js) Js {
+			return howToDoVal[0](self.ID, val)
+		})
+	} else {
+		self.Eventjs.Body = self.Val().WithVar("data", func(val Js) Js {
+			return Js(fmt.Sprintf("SendAction(\"%s\", \"%s\", data)", search.ID, search.TP))
+		})
+	}
+	return *self
+}
+func (search InputWidget) OnWebsocket(callback func(flowData FlowData, c *websocket.Conn)) InputWidget {
+	(&search).Eventjs.Callback = callback
+	return search
+}
+func (self InputWidget) Margin(postion string, nums interface{}) {
 	num := ""
+	search := &self
 	switch nums.(type) {
 	case int:
 		num = fmt.Sprintf("%d%%", nums.(int))
@@ -68,7 +97,7 @@ func (search *SearchWidget) Margin(postion string, nums interface{}) {
 		search.Style += fmt.Sprintf("margin: %s;", num)
 	}
 }
-func (search *SearchWidget) String() string {
+func (search InputWidget) String() string {
 	in := Field{
 		Tag:   "div",
 		Class: "input-group input-group-lg",

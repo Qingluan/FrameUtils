@@ -8,6 +8,21 @@ type BaseObj struct {
 	Base
 }
 
+func (self *BaseObj) String() string {
+	head := self.header()
+	msg := strings.Join(head, " -|- ")
+	n := 0
+	for i := range self.Iter() {
+		if n > 100 {
+			break
+		}
+		msg += "\n" + strings.Join(i, "  |  ")
+		n++
+	}
+	// fmt.Println("F", msg)
+	return msg
+}
+
 func (self *BaseObj) Search(k string) (lines []Line) {
 	if strings.Contains(k, "=") {
 		ks := strings.SplitN(k, "=", 2)

@@ -36,7 +36,7 @@ func (left *ColsContainer) SetContent(str string) {
 func (left ColsContainer) String() string {
 	items := []string{}
 	for k, v := range left.Links {
-		items = append(items, fmt.Sprintf(`<a class="nav-link " id="tab-item-%s" data-toggle="pill" href="%s" role="tab" aria-selected="true">%s</a>`, strings.ReplaceAll(k, " ", "_"), v, k))
+		items = append(items, fmt.Sprintf(`<a class="nav-link " id="tab-item-%s" href="%s" role="tab" aria-selected="true">%s</a>`, strings.ReplaceAll(k, " ", "_"), v, k))
 	}
 	leftContent := fmt.Sprintf(`<div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">%s</div>`, strings.Join(items, "\n"))
 	return fmt.Sprintf(leftRightContainerTMP, leftContent, left.Content)
