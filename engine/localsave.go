@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -50,12 +51,19 @@ var (
 
 func NewObj(keys ...string) (obj *ObjHeader) {
 	obj = new(ObjHeader)
-	u, _ := uuid.NewUUID()
-	u.UnmarshalBinary(obj.SpecialCRC[:])
+	u, _ := uuid.NewRandom()
+	fmt.Println("new uuid crc:", u)
+	b, _ := u.MarshalBinary()
+	// u.UnmarshalBinary(obj.SpecialCRC[:])
+	copy(obj.SpecialCRC[:], b[:16])
 	if keys != nil {
 		obj.PushKeys(keys...)
 	}
 	return
+}
+
+func (objheader *ObjHeader) String() string {
+	return fmt.Sprintf("(CRC:%x, addr:%d, len:%d) ", objheader.SpecialCRC, objheader.StartAddr(), objheader.BodyLen())
 }
 
 func (objheader *ObjHeader) WriteTo(client *ObjDatabase, data []byte, keys ...string) {
@@ -74,18 +82,22 @@ func (objheader *ObjHeader) WriteTo(client *ObjDatabase, data []byte, keys ...st
 	copy(body.Body, data)
 
 	lastHeader := client.LastHeader()
+
 	if lastHeader == nil {
+		fmt.Println("create ...")
 		objheader.SetBodyAddr(256)
 		client.writeTo([]*ObjHeader{objheader}, []*ObjBody{body})
 	} else {
 
 		allheaders := client.AllHeaders()
 		objheader.SetBodyAddr(len(allheaders)*256 + 256)
+
 		allBodys := client.AllBody()
 		allheaders = append(allheaders, objheader)
 		allBodys = append(allBodys, body)
 		client.writeTo(allheaders, allBodys)
 	}
+	fmt.Println(objheader)
 }
 
 func (objbody *ObjBody) SetDataLen(l int) error {
@@ -96,8 +108,9 @@ func (objbody *ObjBody) SetDataLen(l int) error {
 	return nil
 }
 
-func (objbody *ObjBody) SetKeyLen(l int) error {
-	return binary.Read(bytes.NewBuffer(objbody.keyLength[:]), binary.BigEndian, &l)
+func (objbody *ObjBody) SetKeyLen(l int) {
+	// return binary.Read(bytes.NewBuffer(objbody.keyLength[:]), binary.BigEndian, &l)
+	binary.BigEndian.PutUint32(objbody.keyLength[:], uint32(l))
 }
 
 func (objbody *ObjBody) KeyLen() int64 {
@@ -110,29 +123,22 @@ func (objbody *ObjBody) Len() int64 {
 
 func (objheader *ObjHeader) SetDataLen(l int) error {
 	// binary.BigEndian.PutUint16(objheader.Bodylen, l)
-	err := binary.Read(bytes.NewBuffer(objheader.Bodylen[:]), binary.BigEndian, &l)
-	if err != nil {
-		return err
-	}
+	// err := binary.Read(bytes.NewBuffer([:]), binary.BigEndian, &l)
+	binary.BigEndian.PutUint32(objheader.Bodylen[:], uint32(l))
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
-func (objheader *ObjHeader) SetBodyAddr(l int) error {
+func (objheader *ObjHeader) SetBodyAddr(l int) {
 	// binary.BigEndian.PutUint16(objheader.Bodylen, l)
-	err := binary.Read(bytes.NewBuffer(objheader.Bodystartaddr[:]), binary.BigEndian, &l)
-	if err != nil {
-		return err
-	}
-	return nil
+	binary.BigEndian.PutUint32(objheader.Bodystartaddr[:], uint32(l))
+	// err := binary.Read(bytes.NewBuffer(objheader.Bodystartaddr[:]), binary.BigEndian, &l)
 }
 
-func (objheader *ObjHeader) SetNextAddr(l int) error {
-	// binary.BigEndian.PutUint16(objheader.Bodylen, l)
-	err := binary.Read(bytes.NewBuffer(objheader.Nextaddr[:]), binary.BigEndian, &l)
-	if err != nil {
-		return err
-	}
-	return nil
+func (objheader *ObjHeader) SetNextAddr(l int) {
+	binary.BigEndian.PutUint32(objheader.Nextaddr[:], uint32(l))
 }
 
 func (objHeader *ObjHeader) HasKey(key string) bool {
@@ -176,22 +182,32 @@ type ObjDatabase struct {
 }
 
 func (o *ObjHeader) Bytes() []byte {
-	e := make([]byte, 256)
-	copy(e, o.tp[:])
-	copy(e, o.Bodylen[:])
-	copy(e, o.Bodystartaddr[:])
-	copy(e, o.SpecialCRC[:])
-	copy(e, o.HasKeys[:])
-	copy(e, o.Nextaddr[:])
-	return e
+	// e := make([]byte, 256)
+	// copy(e, o.tp[:])
+	// copy(e, o.Bodylen[:])
+	// copy(e, o.Bodystartaddr[:])
+	// copy(e, o.SpecialCRC[:])
+	// copy(e, o.HasKeys[:])
+	// copy(e, o.Nextaddr[:])
+	// fmt.Println(o)
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.BigEndian, o)
+	fmt.Println("header buf:", bin_buf.Bytes())
+	return bin_buf.Bytes()
 }
 
 func (o *ObjBody) Bytes() []byte {
-	e := make([]byte, int(o.Len()))
-	copy(e, o.Length[:])
-	copy(e, o.keyLength[:])
-	copy(e, o.Body)
-	return e
+	// e := make([]byte, int(o.Len()))
+	// copy(e, o.Length[:])
+	// copy(e, o.keyLength[:])
+	// copy(e, o.Body)
+
+	// fmt.Println("body buf:", e)
+
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.BigEndian, o)
+	fmt.Println("body buf:", bin_buf.Bytes())
+	return bin_buf.Bytes()
 }
 
 func (o *ObjBody) ToObj() (base *BaseObj) {
@@ -208,8 +224,19 @@ func (o *ObjBody) ToObj() (base *BaseObj) {
 	return
 }
 
-func (odb *ObjDatabase) IterHeaders() (<-chan *ObjHeader, error) {
-	fp, err := os.Open(odb.FileName)
+func (odb *ObjDatabase) IterHeaders() <-chan *ObjHeader {
+	var fp *os.File
+	var err error
+	if _, err := os.Stat(odb.FileName); err != nil {
+		fp, err = os.Create(odb.FileName)
+		headers := make(chan *ObjHeader)
+		go func() {
+			close(headers)
+		}()
+		return headers
+	} else {
+		fp, err = os.Open(odb.FileName)
+	}
 	odb.fb = fp
 	headers := make(chan *ObjHeader)
 	// GlobalLock.Lock()
@@ -235,10 +262,11 @@ func (odb *ObjDatabase) IterHeaders() (<-chan *ObjHeader, error) {
 	}()
 	currentPosition, err := fp.Seek(0, 1)
 	if err != nil {
-		return headers, err
+		log.Fatal("Err iter headers:", err)
+		return headers
 	}
 	odb.BodyStartAddr = int(currentPosition)
-	return headers, err
+	return headers
 }
 
 func (odb *ObjDatabase) readHeader(now int) (header *ObjHeader, end bool, newnow int, err error) {
@@ -316,16 +344,16 @@ func (odb *ObjDatabase) Close() error {
 	return nil
 }
 
-func (odb *ObjDatabase) IterBody(filterFunc ...func(body *ObjBody) bool) (<-chan *ObjBody, error) {
+func (odb *ObjDatabase) IterBody(filterFunc ...func(body *ObjBody) bool) <-chan *ObjBody {
 	bodys := make(chan *ObjBody)
 	GlobalLock.Lock()
 	defer GlobalLock.Unlock()
+	ifempty := true
 	go func() error {
-		headers, err := odb.IterHeaders()
-		if err != nil {
-			log.Fatal(err)
-		}
+		headers := odb.IterHeaders()
+
 		for header := range headers {
+			ifempty = false
 			if onbody, err := odb.readBody(header); err != nil {
 				log.Fatal(err)
 			} else {
@@ -342,20 +370,21 @@ func (odb *ObjDatabase) IterBody(filterFunc ...func(body *ObjBody) bool) (<-chan
 		close(bodys)
 		return nil
 	}()
+	if ifempty {
+		return bodys
+	}
 	currentPosition, err := odb.fb.Seek(0, 1)
 	if err != nil {
-		return bodys, err
+		log.Fatal("Err Iter Body:", err)
+		return bodys
 	}
 	odb.BodyStartAddr = int(currentPosition)
-	return bodys, err
+	return bodys
 }
 
 func (odb *ObjDatabase) LastHeader() (header *ObjHeader) {
-	headers, err := odb.IterHeaders()
-	if err != nil {
-		log.Fatal("Err with iterheaders:", err)
-		return nil
-	}
+	headers := odb.IterHeaders()
+
 	for h := range headers {
 		header = h
 	}
@@ -363,11 +392,8 @@ func (odb *ObjDatabase) LastHeader() (header *ObjHeader) {
 }
 
 func (odb *ObjDatabase) AllHeaders() (hs []*ObjHeader) {
-	hee, err := odb.IterHeaders()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	hee := odb.IterHeaders()
+
 	for h := range hee {
 		hs = append(hs, h)
 	}
@@ -375,19 +401,25 @@ func (odb *ObjDatabase) AllHeaders() (hs []*ObjHeader) {
 }
 
 func (odb *ObjDatabase) AllBody() (hs []*ObjBody) {
-	hee, err := odb.IterBody()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	hee := odb.IterBody()
+
 	for h := range hee {
 		hs = append(hs, h)
 	}
 	return
 }
 
-func (odb *ObjDatabase) writeTo(headers []*ObjHeader, bodys []*ObjBody) {
+func (odb *ObjDatabase) writeTo(headers []*ObjHeader, bodys []*ObjBody) error {
+	if odb.fb != nil {
+		odb.Close()
+		defer func() {
+			odb.fb, _ = os.Open(odb.FileName)
+		}()
+	}
 	bak, err := os.Create(odb.FileName + ".bak")
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		log.Fatal("Bakup err:", err)
 	}
@@ -403,5 +435,22 @@ func (odb *ObjDatabase) writeTo(headers []*ObjHeader, bodys []*ObjBody) {
 		bak.Write(b.Bytes())
 		// bak.Write(crcs)
 	}
+	os.Remove(odb.FileName)
+	err = os.Rename(odb.FileName+".bak", odb.FileName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
+func NewObjClient(fileName string) *ObjDatabase {
+	c := new(ObjDatabase)
+	c.FileName = fileName
+	return c
+}
+
+func (client *ObjDatabase) CreateBlock(data []byte, keys ...string) *ObjDatabase {
+	head := NewObj()
+	head.WriteTo(client, data, keys...)
+	return client
 }
