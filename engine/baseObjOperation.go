@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -154,6 +155,13 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 	newObj = &BaseObj{
 		jsonObj,
 	}
+	return
+}
+
+func (self *BaseObj) Marshal() (body []byte, keys []string, err error) {
+	js := self.AsJson()
+	body, err = json.Marshal(&js)
+	keys = self.header()
 	return
 }
 

@@ -38,6 +38,7 @@ type Obj interface {
 	Join(other Obj, opt int, keys ...string) (newObj *BaseObj)
 	ToHTML(...string) string
 	AsJson() []Dict
+	Marshal() ([]byte, []string, error)
 }
 
 func (line Line) Filter(each func(int, string) bool) (int, bool) {
