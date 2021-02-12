@@ -31,13 +31,14 @@ var (
 
 // Page : web server page
 type Page struct {
-	Route    string
-	Method   int
-	Body     string
-	Style    map[string]string
-	Handler  func(w http.ResponseWriter, r *http.Request)
-	JsEvents map[string]JSEvent
-	ExtendJS []Js
+	Route       string
+	Method      int
+	Body        string
+	BodyWidgets []Widget
+	Style       map[string]string
+	Handler     func(w http.ResponseWriter, r *http.Request)
+	JsEvents    map[string]JSEvent
+	ExtendJS    []Js
 }
 
 // PreparedRoute : regist a func to map
@@ -51,9 +52,12 @@ func (page *Page) AddBody(body interface{}) *Page {
 	case string:
 		page.Body = body.(string)
 	case Widget:
+		page.BodyWidgets = append(page.BodyWidgets, body.(Widget))
+
+		// L(page.Route, "debug", body)
 		page.Body = body.(Widget).String()
 	default:
-		L("Warrning", "add body", "body is not Widget/string")
+		L("Warrning", "add body", "body is not Widget/string", body)
 		return page
 	}
 	return page
@@ -113,6 +117,7 @@ func (page *Page) OnPost(call func(w http.ResponseWriter, r *http.Request)) *Pag
 
 // RenderPage : get base bootstrap html
 func (page *Page) RenderPage(jsArea ...string) *Page {
+	defer L(page.Route, "Registed!")
 	js := ""
 	extend := ""
 	for _, v := range RegistedWebSocketFuncs {
@@ -124,6 +129,18 @@ func (page *Page) RenderPage(jsArea ...string) *Page {
 			selector = "#" + selector
 		}
 		js += "\n" + Query(selector).Call(jsevent.Method(), jsevent.String()).String()
+	}
+	for _, widget := range page.BodyWidgets {
+		selector, method, jsevent, callback := widget.Event()
+		// L(page.Route, "debug", selector, method, jsevent)
+		if callback != nil {
+			RegistWebSocketCallback(selector, callback)
+		}
+		if !strings.HasPrefix(selector, "#") {
+			selector = "#" + selector
+		}
+		js += "\n" + Query(selector).Call(method, jsevent.String()).String()
+
 	}
 	if jsArea != nil {
 		js += "\n" + jsArea[0]
@@ -178,8 +195,10 @@ func StartServer(listenAddr string) {
 	}
 
 	search := &SearchWidget{
-		ID: "SearchInput",
-		TP: "search",
+		InputWidget: InputWidget{
+			ID: "SearchInput",
+			TP: "search",
+		},
 	}
 	search.Margin("", 10)
 	container := ColsContainer{
@@ -207,9 +226,12 @@ func SetRouteStyle(route, cssselector, cssbody string) {
 	AllPages[route].AddStyle(cssselector, cssbody)
 }
 
-func AddPageWithNoBody(route string) *Page {
+func AddPageWithNoBody(route string, UseGetPage bool) *Page {
 	page := &Page{
 		Route: route,
+	}
+	if UseGetPage {
+		page.Method |= METHOD_GET
 	}
 	AllPages[route] = page
 	return page

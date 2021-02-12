@@ -11,8 +11,13 @@ var actions = {
 	AddView: function(data){
 		id = data.id
 		value = data.value
-		ele = document.getElementById(id)
-		ele.innerHTML = ele.innerHTML + value 
+		if (id == ""){
+			$("body").append(value) 
+		}else{
+			ele = document.getElementById(id)
+			ele.innerHTML = ele.innerHTML + value 
+		}
+		
 	},
 	SetView: function(data){
 		id = data.id
@@ -97,6 +102,8 @@ window.addEventListener("load", function(evt) {
 		callback = actions[m.tp];
 		if (callback != null){
 			callback(m);
+		}else{
+			console.log("Err:",m.tp);
 		}
 	}
 	ws.onerror = function(event) {

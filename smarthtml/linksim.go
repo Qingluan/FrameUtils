@@ -141,9 +141,23 @@ type FilterOption struct {
 	Distance float32
 	Proxy    interface{}
 }
+type Links [][]*UrlSim
+
+func (link Links) AsString(rank int) (a [][]string) {
+
+	for no, ls := range link {
+		if no == rank {
+			for _, l := range ls {
+				aone := []string{l.GetTitle(), l.GetUrl()}
+				a = append(a, aone)
+			}
+		}
+	}
+	return
+}
 
 // SmartLinksim
-func SmartExtractLinks(urlstr string, filters ...FilterOption) (links [][]*UrlSim) {
+func SmartExtractLinks(urlstr string, filters ...FilterOption) (links Links) {
 	sess := http.NewSession()
 	filter := FilterOption{
 		Rank:     3,
@@ -200,12 +214,12 @@ func SmartExtractLinks(urlstr string, filters ...FilterOption) (links [][]*UrlSi
 	}
 
 	sort.Slice(links, func(i, j int) bool {
-		return len(links[i]) < len(links[j])
+		return len(links[i]) > len(links[j])
 	})
 	// sort.SliceSort(links, func(i, j int) bool {
 	// 	return len(links[i]) > len(links[j])
 	// })
 	ff := min(filter.Rank, len(links))
-	links = links[len(links)-ff:]
+	links = links[:ff]
 	return
 }

@@ -7,8 +7,8 @@ import (
 )
 
 /*Join usage
-Join two Frame by keys, if not set keys use first key
 
+Join two Frame by keys, if not set keys use first key
 */
 func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) {
 	headerL := self.Header()
@@ -158,13 +158,6 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 	return
 }
 
-func (self *BaseObj) Marshal() (body []byte, keys []string, err error) {
-	js := self.AsJson()
-	body, err = json.Marshal(&js)
-	keys = self.header()
-	return
-}
-
 func (self *BaseObj) Match(line Line, keys ...string) bool {
 	for linel := range self.Iter() {
 		if keys != nil {
@@ -249,8 +242,10 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 		for i, li := range line[1:] {
 			key := ""
 			col++
-			if hasHeader {
+			if i < len(headers) {
 				key = headers[i]
+
+				// fmt.Println("Key:", headers[i], key)
 			}
 
 			items = append(items, fmt.Sprintf("<td data-row=\"%d\" data-col=\"%d\" data=\"%s\" key=\"%s\" >%s</td>", row, col, li, key, li))
@@ -263,4 +258,11 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 		pre += fmt.Sprintf("\n\t<tr data-row=\"%d\" onclick=\"click_tr(this);\" >%s</tr>", row, strings.Join(items, ""))
 	}
 	return pre + "\n    </tbody></table>"
+}
+
+func (self *BaseObj) Marshal() (body []byte, keys []string, err error) {
+	js := self.AsJson()
+	body, err = json.Marshal(&js)
+	keys = self.header()
+	return
 }

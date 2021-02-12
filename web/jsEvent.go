@@ -1,5 +1,7 @@
 package web
 
+import "github.com/gorilla/websocket"
+
 var (
 // Base = map[string]JSEvent{}
 )
@@ -11,8 +13,9 @@ const (
 )
 
 type JSEvent struct {
-	Body   Js
-	Toogle int
+	Body     Js
+	Toogle   int
+	Callback func(flowData FlowData, c *websocket.Conn)
 }
 
 func (jsevent JSEvent) Method() string {
