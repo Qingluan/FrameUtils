@@ -2,6 +2,7 @@ package engine
 
 type EmptyBaseClass struct {
 	Arrays []Line
+	Key    Line
 }
 
 func (empty EmptyBaseClass) Iter(header ...string) <-chan Line {
@@ -25,14 +26,10 @@ func (empty EmptyBaseClass) Tp() string {
 }
 
 func (empty EmptyBaseClass) header(keylength ...int) (l Line) {
-	if len(empty.Arrays) > 0 {
-		if keylength != nil {
-			l.Push(empty.Arrays[0][0])
-		} else {
-			for _, f := range empty.Arrays[0] {
-				l.Push(f)
-			}
-		}
+	if len(empty.Key) > 0 {
+		return empty.Key
+	} else if len(empty.Arrays) > 0 {
+		return empty.Arrays[0]
 	}
 	return
 }

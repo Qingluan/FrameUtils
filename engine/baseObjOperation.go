@@ -260,9 +260,14 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 	return pre + "\n    </tbody></table>"
 }
 
-func (self *BaseObj) Marshal() (body []byte, keys []string, err error) {
+func (self *BaseObj) Bytes() (body []byte, err error) {
 	js := self.AsJson()
 	body, err = json.Marshal(&js)
+	return
+}
+
+func (self *BaseObj) Marshal() (body []byte, keys []string, err error) {
+	body, err = self.Bytes()
 	keys = self.header()
 	return
 }

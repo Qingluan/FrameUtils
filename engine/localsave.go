@@ -22,7 +22,7 @@ one block Obj Header , can include many keys data
 	TP [2]byte version info
 	bodystart addr can found start,
 	crc , will genreate a uuid to split block, to check if startaddr is ok
-	haskeys can search quick , to make sure if this key in this.
+	Info can search quick , to make sure if this key in this.
 	nextaddr
 */
 type ObjHeader struct {
@@ -30,7 +30,7 @@ type ObjHeader struct {
 	Bodystartaddr [8]byte
 	Bodylen       [8]byte
 	Crc           [16]byte
-	HasKeys       [214]byte
+	Info          [214]byte
 	Nextaddr      [8]byte
 }
 
@@ -49,6 +49,14 @@ type ObjBody struct {
 	Length    [8]byte
 	keyLength [8]byte
 	Body      []byte
+}
+
+type ObjDatabase struct {
+	FileName      string
+	BlockLen      int
+	BodyStartAddr int
+	UseInfo       string
+	fb            *os.File
 }
 
 var (
@@ -118,6 +126,14 @@ func (objheader *ObjHeader) Write(client *ObjDatabase, data []byte, keys ...stri
 	}
 }
 
+func (objhead *ObjHeader) SetInfo(info string) {
+	copy(objhead.Info[:], []byte(info))
+}
+
+func (objhead *ObjHeader) GetInfo() string {
+	return strings.TrimSpace(string(objhead.Info[:]))
+}
+
 func (objbody *ObjBody) SetDataLen(l int64) {
 	binary.BigEndian.PutUint32(objbody.Length[:], uint32(l))
 }
@@ -156,7 +172,7 @@ func (objheader *ObjHeader) SetNextAddr(l int64) {
 }
 
 func (objHeader *ObjHeader) HasKey(key string) bool {
-	return bytes.Contains(objHeader.HasKeys[:], []byte(key))
+	return bytes.Contains(objHeader.Info[:], []byte(key))
 }
 
 func (objHeader *ObjHeader) StartAddr() int64 {
@@ -172,7 +188,7 @@ func (objHeader *ObjHeader) BodyLen() int64 {
 }
 
 func (objHeader *ObjHeader) PushKeys(keys ...string) {
-	keyBytes := strings.TrimSpace(string(objHeader.HasKeys[:]))
+	keyBytes := strings.TrimSpace(string(objHeader.Info[:]))
 	for _, k := range keys {
 		if len(keyBytes) > 213 {
 			break
@@ -184,15 +200,8 @@ func (objHeader *ObjHeader) PushKeys(keys ...string) {
 		}
 	}
 	a := [214]byte{}
-	objHeader.HasKeys = a
-	copy(objHeader.HasKeys[:], []byte(keyBytes))
-}
-
-type ObjDatabase struct {
-	FileName      string
-	BlockLen      int
-	BodyStartAddr int
-	fb            *os.File
+	objHeader.Info = a
+	copy(objHeader.Info[:], []byte(keyBytes))
 }
 
 func (o *ObjHeader) UUID() string {
@@ -527,8 +536,9 @@ func NewObjClient(fileName string) *ObjDatabase {
 	return c
 }
 
-func (client *ObjDatabase) CreateBlock(data []byte, keys ...string) *ObjDatabase {
+func (client *ObjDatabase) CreateBlock(info string, data []byte, keys ...string) *ObjDatabase {
 	head := NewObj()
+	head.SetInfo(info)
 	head.Write(client, data, keys...)
 	return client
 }
