@@ -23,6 +23,7 @@ func WithTmpDB(name string) (db *engine.ObjDatabase, exists bool) {
 
 func dataFunc(flow FlowData, c *websocket.Conn) {
 	d := make(map[string]interface{})
+	fmt.Println(flow)
 	if err := json.Unmarshal([]byte(flow.Value), &d); err != nil {
 		c.WriteJSON(FlowData{Value: err.Error(), Tp: "Err"})
 	}

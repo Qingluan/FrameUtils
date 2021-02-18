@@ -89,11 +89,17 @@ var actions = {
 	},
 	Notify:function(data){
 		id = data.id
-		value = data.value
+		
 		subtitle = new Date().format("yyyy-MM-dd hh:mm:ss");
 		content = ""
 		if (id == "show-data"){
-			content = "<button class=\"btn btn-info\" onclick='return SendAction(\"db\",\"show-data\",\"" + value+ "\")'>Click To Show Data </button>"
+			value = {
+				size: 100,
+				num:0,
+				db:data.value
+			}
+			// TODO
+			content = "<button class=\"btn btn-info\" onclick='return SendAction(\"db\",\"show-data\",\'" + JSON.stringify(value) +  "\')'>Click To Show Data </button>"
 		}else{
 			content = value
 		}
