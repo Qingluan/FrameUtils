@@ -5,17 +5,17 @@ import (
 	"strings"
 )
 
-func (client *ObjDatabase) QueryBlock(info string) *ObjBody {
+func (client *ObjDatabase) QueryBlock(info string) (*ObjHeader, *ObjBody) {
 	for header := range client.IterHeaders() {
 		if strings.Contains(header.GetInfo(), info) {
 			b, err := client.readBody(header)
 			if err != nil {
 				log.Fatal("Query header success but body can not found , broken file !!!!")
 			}
-			return b
+			return header, b
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (client *ObjDatabase) Page(num, size int) Obj {
@@ -32,5 +32,6 @@ func (client *ObjDatabase) Page(num, size int) Obj {
 		}
 		return body.ToObj().Page(num, size)
 	}
-	return client.QueryBlock(client.UseInfo).ToObj().Page(num, size)
+	_, b := client.QueryBlock(client.UseInfo)
+	return b.ToObj().Page(num, size)
 }

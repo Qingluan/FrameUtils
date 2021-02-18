@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func (self *BaseObj) Page(num int, size int) (page Obj) {
@@ -22,11 +23,23 @@ func (self *BaseObj) Page(num int, size int) (page Obj) {
 
 func (self *BaseObj) WithTmpDB(dbName string) *ObjDatabase {
 	tmpFile := os.TempDir()
+	dbName = strings.ReplaceAll(dbName, ":", "-")
+
+	dbName = strings.ReplaceAll(dbName, "/", "_")
 	clientFile := filepath.Join(tmpFile, dbName)
+
 	client := NewObjClient(clientFile)
-	body, key, err := self.Marshal()
-	if err != nil {
-		log.Fatal("create db err:", err)
+	if _, err := os.Stat(clientFile); err == nil {
+		body, key, err := self.Marshal()
+		if err != nil {
+			log.Fatal("create db err:", err)
+		}
+		return client.UpdateBlock(self.Tp(), body, key...)
+	} else {
+		body, key, err := self.Marshal()
+		if err != nil {
+			log.Fatal("create db err:", err)
+		}
+		return client.CreateBlock(self.Tp(), body, key...)
 	}
-	return client.CreateBlock(self.Tp(), body, key...)
 }

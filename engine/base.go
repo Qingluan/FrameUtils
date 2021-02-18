@@ -41,6 +41,8 @@ type Obj interface {
 	ToHTML(...string) string
 	AsJson() []Dict
 	Marshal() ([]byte, []string, error)
+
+	WithTmpDB(dbName string) *ObjDatabase
 }
 
 func (line Line) Filter(each func(int, string) bool) (int, bool) {

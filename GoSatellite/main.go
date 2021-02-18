@@ -20,13 +20,22 @@ func InitServers() {
 		TP: "add-url",
 	}.OnEvent(web.EVENT_ENTER).OnWebsocket(func(flow web.FlowData, c *websocket.Conn) {
 		web.L("/add", "Callback", flow)
-		urls := smarthtml.SmartExtractLinks(flow.Value).AsString(0)
-		o := engine.FromArrays(urls)
-		c.WriteJSON(web.FlowData{
-			Id:    "",
-			Tp:    "AddView",
-			Value: o.ToHTML("show-links"),
-		})
+		if _, ok := web.WithTmpDB(flow.Value); ok {
+			web.L("info", "exists:", ok)
+			web.NextActionNotify("show-data", flow.Value, c)
+		} else {
+			web.L("info", "exists:", ok)
+			urls := smarthtml.SmartExtractLinks(flow.Value).AsString(0)
+			o := engine.FromArrays(urls)
+			db := o.WithTmpDB(flow.Value)
+			web.L("save to:", db.FileName)
+			c.WriteJSON(web.FlowData{
+				Id:    "",
+				Tp:    "AddView",
+				Value: o.ToHTML("show-links"),
+			})
+		}
+
 	}))
 }
 

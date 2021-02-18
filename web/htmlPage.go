@@ -165,16 +165,18 @@ func (page *Page) RenderPage(jsArea ...string) *Page {
 					<meta charset="utf-8">
 					<style type="text/css" >%s</style>
 					<style type="text/css" custome="true" >%s</style>
+					<style type="text/css" custome="true" cssfor="toast" >%s</style>
 				</head>
 				<body class="h-100" style="        position: absolute; width:100%%;">
-			`, AllStyle, BootstrapCSS) + page.Body + fmt.Sprintf(`
-					<script >%s</script>
-					<script >%s</script>
-					<script >%s</script>
+			`, AllStyle, BootstrapCSS, ToastCSS) + page.Body + fmt.Sprintf(`
+					<script jsName="jqueryv3.3.1">%s</script>
+					<script jsName="bootstrapPop">%s</script>
+					<script jsName="bootstrap">%s</script>
+					<script jsName="toast">%s</script>
 					<script jsname="base-functions">%s</script>
 					<script >%s</script>
 				</body>
-			</html>`, Jquery, BootstrapPopJS, BootstrapJS, baseFunctionJS+extend, js)
+			</html>`, Jquery, BootstrapPopJS, BootstrapJS, ToastJS, baseFunctionJS+extend, js)
 				fmt.Fprint(w, h)
 			}
 		case "POST":
@@ -215,7 +217,9 @@ func StartServer(listenAddr string) {
 			c.WriteJSON(flowData)
 		})
 	}
+	HomePage.OnWebsocket("db", dataFunc)
 	HomePage.RenderPage()
+
 	for _, page := range AllPages {
 		page.RenderPage()
 	}

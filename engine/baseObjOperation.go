@@ -216,9 +216,13 @@ func (self *BaseObj) Match(line Line, keys ...string) bool {
 */
 func (self *BaseObj) ToHTML(tableID ...string) string {
 	ID := "default-table"
-
+	// usePage := false
 	if tableID != nil {
 		ID = tableID[0]
+
+		// if len(tableID) > 1 && tableID[1] == "#page" {
+		// 	usePage = true
+		// }
 	}
 	headers := self.Header()
 	pre := fmt.Sprintf(`<table  class="table" id="%s" ><thead class="thead-dark">`, ID)
@@ -247,7 +251,6 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 
 				// fmt.Println("Key:", headers[i], key)
 			}
-
 			items = append(items, fmt.Sprintf("<td data-row=\"%d\" data-col=\"%d\" data=\"%s\" key=\"%s\" >%s</td>", row, col, li, key, li))
 		}
 		if hasHeader {
@@ -258,6 +261,7 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 		pre += fmt.Sprintf("\n\t<tr data-row=\"%d\" onclick=\"click_tr(this);\" >%s</tr>", row, strings.Join(items, ""))
 	}
 	return pre + "\n    </tbody></table>"
+
 }
 
 func (self *BaseObj) Bytes() (body []byte, err error) {

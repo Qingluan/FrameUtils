@@ -81,6 +81,65 @@ func (objheader *ObjHeader) String() string {
 	return fmt.Sprintf("(CRC:%x, addr:%d, len:%d) ", objheader.Crc, objheader.StartAddr(), objheader.BodyLen())
 }
 
+func (objheader *ObjHeader) Update(client *ObjDatabase, info string, data []byte, keys ...string) {
+	dataKeys, _ := json.Marshal(&keys)
+	// fmt.Println("write to : /keys:", string(dataKeys))
+	klen := len(dataKeys)
+	datalen := len(data)
+
+	objheader.SetDataLen(int64(datalen + klen + BodyHeaderLen))
+	body := new(ObjBody)
+	ic := int64(datalen - int(objheader.BodyLen()))
+	body.SetDataLen(int64(datalen + klen))
+	body.SetKeyLen(int64(klen))
+
+	body.Body = make([]byte, int(body.Len()))
+	copy(body.Tp[:], []byte("ha"))
+	copy(body.Crc[:], objheader.Crc[:])
+	copy(body.Body[:klen], dataKeys)
+	copy(body.Body[klen:], data)
+
+	lastHeader := client.LastHeader()
+	oldCRC := objheader.UUID()
+	if lastHeader == nil {
+
+		objheader.SetBodyAddr(256)
+		client.writeTo([]*ObjHeader{objheader}, []*ObjBody{body})
+		fmt.Println("init :", objheader)
+	} else {
+		// client.AllHeadersSync()
+		allheaders := client.AllHeaders()
+		count := len(allheaders)
+		// nowStart := 0
+		hit := false
+		allheaders = ObjHeaders(allheaders).With(func(h *ObjHeader) {
+			if h.GetInfo() == info {
+				hit = true
+			}
+			if hit {
+				h.SetBodyAddr(h.BodyLen() + ic)
+			}
+
+		})
+
+		lastHeader = allheaders[count-1]
+
+		fmt.Println("update :", objheader)
+		allBodys := client.AllBody()
+		hitI := -1
+		for i, b := range allBodys {
+			if b.UUID() == oldCRC {
+				hitI = i
+			}
+		}
+		allBodys[hitI] = body
+		// allheaders = append(allheaders, objheader)
+		// allBodys = append(allBodys, body)
+		client.writeTo(allheaders, allBodys)
+
+	}
+}
+
 func (objheader *ObjHeader) Write(client *ObjDatabase, data []byte, keys ...string) {
 	dataKeys, _ := json.Marshal(&keys)
 	// fmt.Println("write to : /keys:", string(dataKeys))
@@ -121,8 +180,8 @@ func (objheader *ObjHeader) Write(client *ObjDatabase, data []byte, keys ...stri
 		allBodys := client.AllBody()
 		allheaders = append(allheaders, objheader)
 		allBodys = append(allBodys, body)
-		client.writeTo(allheaders, allBodys)
-
+		err := client.writeTo(allheaders, allBodys)
+		fmt.Println("debug", "err", err)
 	}
 }
 
@@ -292,20 +351,20 @@ func (o *ObjBody) ToObj() (base *BaseObj) {
 	}
 }
 
-func (odb *ObjDatabase) IterHeaders() <-chan *ObjHeader {
+func (odb *ObjDatabase) Open() (err error) {
 	var fp *os.File
-	var err error
 	if _, err := os.Stat(odb.FileName); err != nil {
 		fp, err = os.Create(odb.FileName)
-		headers := make(chan *ObjHeader)
-		go func() {
-			close(headers)
-		}()
-		return headers
 	} else {
 		fp, err = os.Open(odb.FileName)
 	}
 	odb.fb = fp
+	return
+}
+
+func (odb *ObjDatabase) IterHeaders() <-chan *ObjHeader {
+	var err error
+
 	headers := make(chan *ObjHeader)
 	// GlobalLock.Lock()
 	// defer GlobalLock.Unlock()
@@ -317,7 +376,9 @@ func (odb *ObjDatabase) IterHeaders() <-chan *ObjHeader {
 			onheader, ifend, now, err = odb.readHeader(now)
 			// fmt.Println("now:", now, onheader)
 			if err != nil {
-				log.Fatal(err)
+				if err.Error() != "EOF" {
+					log.Fatal(err)
+				}
 				break
 			}
 			if ifend {
@@ -341,17 +402,20 @@ func (odb *ObjDatabase) IterHeaders() <-chan *ObjHeader {
 
 func (odb *ObjDatabase) readHeader(now int) (header *ObjHeader, end bool, newnow int, err error) {
 
+	odb.Open()
+	defer odb.Close()
 	GlobalLock.Lock()
 	defer GlobalLock.Unlock()
 	buf := make([]byte, 256)
 	ret, err := odb.fb.Seek(int64(now), os.SEEK_SET)
 	if err != nil {
-		log.Fatal("seek ret:", ret)
+		log.Fatal("seek ret err:", ret, err)
 		return nil, true, -1, err
 	}
 	n, err := odb.fb.Read(buf)
 	if err != nil {
 		fmt.Println("readHeader err:", err)
+		end = true
 		return
 	} else if n != 256 {
 		end = true
@@ -373,6 +437,9 @@ func (odb *ObjDatabase) readHeader(now int) (header *ObjHeader, end bool, newnow
 }
 
 func (odb *ObjDatabase) readBody(header *ObjHeader) (body *ObjBody, err error) {
+
+	odb.Open()
+	defer odb.Close()
 	GlobalLock.Lock()
 	defer GlobalLock.Unlock()
 
@@ -411,6 +478,7 @@ func (odb *ObjDatabase) Close() error {
 
 func (odb *ObjDatabase) IterBody(filterFunc ...func(body *ObjBody) bool) <-chan *ObjBody {
 	bodys := make(chan *ObjBody)
+
 	GlobalLock.Lock()
 	defer GlobalLock.Unlock()
 	ifempty := true
@@ -496,6 +564,8 @@ func (odb *ObjDatabase) AllBody() (hs []*ObjBody) {
 }
 
 func (odb *ObjDatabase) writeTo(headers []*ObjHeader, bodys []*ObjBody) error {
+
+	odb.Close()
 	if odb.fb != nil {
 		odb.Close()
 		defer func() {
@@ -522,9 +592,17 @@ func (odb *ObjDatabase) writeTo(headers []*ObjHeader, bodys []*ObjBody) error {
 		bak.Write(b.Bytes())
 		// bak.Write(crcs)
 	}
-	os.Remove(odb.FileName)
+	err = os.Remove(odb.FileName)
+	if err != nil {
+		fmt.Println("Err:", err)
+		return err
+	}
+
+	bak.Close()
 	err = os.Rename(odb.FileName+".bak", odb.FileName)
 	if err != nil {
+
+		fmt.Println("Err:", err)
 		return err
 	}
 	return nil
@@ -536,9 +614,32 @@ func NewObjClient(fileName string) *ObjDatabase {
 	return c
 }
 
+func (client *ObjDatabase) UpdateBlock(info string, data []byte, keys ...string) *ObjDatabase {
+	head, _ := client.QueryBlock(info)
+	if head == nil {
+		head := NewObj()
+		head.SetInfo(info)
+		head.Write(client, data, keys...)
+	} else {
+		head.Update(client, info, data, keys...)
+
+	}
+	// head.SetInfo(info)
+	return client
+}
+
 func (client *ObjDatabase) CreateBlock(info string, data []byte, keys ...string) *ObjDatabase {
 	head := NewObj()
 	head.SetInfo(info)
 	head.Write(client, data, keys...)
 	return client
+}
+
+func (client *ObjDatabase) Exists() bool {
+	if _, err := os.Stat(client.FileName); err == nil {
+		return true
+	} else {
+		fmt.Println(Green(client.FileName))
+		return false
+	}
 }
