@@ -378,6 +378,8 @@ func (odb *ObjDatabase) IterHeaders() <-chan *ObjHeader {
 			if err != nil {
 				if err.Error() != "EOF" {
 					log.Fatal(err)
+				} else {
+					err = nil
 				}
 				break
 			}
@@ -446,7 +448,7 @@ func (odb *ObjDatabase) readBody(header *ObjHeader) (body *ObjBody, err error) {
 	// fmt.Println("To:", header.StartAddr(), "Header len:", header.BodyLen())
 	ret, err := odb.fb.Seek(header.StartAddr(), os.SEEK_SET)
 	if err != nil {
-		log.Fatal("seek ret:", ret)
+		log.Println("seek ret:", ret)
 		return nil, err
 	}
 	// ee, _ := odb.fb.Seek(0, 1)

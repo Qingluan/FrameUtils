@@ -38,7 +38,7 @@ type Obj interface {
 	Iter(filterheader ...string) <-chan Line
 	Where(filter func(lineno int, line Line, wordno int, word string) bool) (newObj *BaseObj)
 	Join(other Obj, opt int, keys ...string) (newObj *BaseObj)
-	ToHTML(...string) string
+	ToHTML(tableID string, each ...func(row, col int, value string) string) string
 	AsJson() []Dict
 	Marshal() ([]byte, []string, error)
 

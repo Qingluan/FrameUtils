@@ -158,11 +158,12 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 	return
 }
 
-func (self *BaseObj) Match(line Line, keys ...string) bool {
-	for linel := range self.Iter() {
+// Match : match some
+func (baseobj *BaseObj) Match(line Line, keys ...string) bool {
+	for linel := range baseobj.Iter() {
 		if keys != nil {
 
-			d := linel.FromKey(self.Header())
+			d := linel.FromKey(baseobj.Header())
 			checklines := Line{}
 			for _, k := range keys {
 				if vvv, ok := d[k]; ok {
@@ -182,7 +183,7 @@ func (self *BaseObj) Match(line Line, keys ...string) bool {
 
 }
 
-/*
+/*ToHTML :
 <table class="table">
   <thead class="thead-dark">
     <tr>
@@ -214,17 +215,16 @@ func (self *BaseObj) Match(line Line, keys ...string) bool {
   </tbody>
 </table>
 */
-func (self *BaseObj) ToHTML(tableID ...string) string {
+func (baseobj *BaseObj) ToHTML(tableID string, each ...func(row, col int, value string) string) string {
 	ID := "default-table"
 	// usePage := false
-	if tableID != nil {
-		ID = tableID[0]
-
+	if tableID != "" {
+		ID = tableID
 		// if len(tableID) > 1 && tableID[1] == "#page" {
 		// 	usePage = true
 		// }
 	}
-	headers := self.Header()
+	headers := baseobj.Header()
 	pre := fmt.Sprintf(`<table  class="table" id="%s" ><thead class="thead-dark">`, ID)
 	hs := []string{}
 	hasHeader := false
@@ -238,20 +238,23 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 	}
 
 	row := -1
-	for line := range self.Iter() {
+	for line := range baseobj.Iter() {
 		row++
 
 		items := []string{}
-		col := -1
-		for i, li := range line[1:] {
+		// col := -1
+		for col, li := range line[1:] {
 			key := ""
-			col++
-			if i < len(headers) {
-				key = headers[i]
+			// col++
+			if col < len(headers) {
+				key = headers[col]
 
 				// fmt.Println("Key:", headers[i], key)
 			}
-			items = append(items, fmt.Sprintf("<td data-row=\"%d\" data-col=\"%d\" data=\"%s\" key=\"%s\" >%s</td>", row, col, li, key, li))
+			if each != nil {
+				li = each[0](row, col, li)
+			}
+			items = append(items, fmt.Sprintf("<td data-row=\"%d\" data-col=\"%d\" key=\"%s\" >%s</td>", row, col, key, li))
 		}
 		if hasHeader {
 			hasHeader = false
@@ -264,14 +267,16 @@ func (self *BaseObj) ToHTML(tableID ...string) string {
 
 }
 
-func (self *BaseObj) Bytes() (body []byte, err error) {
-	js := self.AsJson()
+// Bytes : Objs to json bytes
+func (baseobj *BaseObj) Bytes() (body []byte, err error) {
+	js := baseobj.AsJson()
 	body, err = json.Marshal(&js)
 	return
 }
 
-func (self *BaseObj) Marshal() (body []byte, keys []string, err error) {
-	body, err = self.Bytes()
-	keys = self.header()
+// Marshal : to bytes and keys
+func (baseobj *BaseObj) Marshal() (body []byte, keys []string, err error) {
+	body, err = baseobj.Bytes()
+	keys = baseobj.header()
 	return
 }

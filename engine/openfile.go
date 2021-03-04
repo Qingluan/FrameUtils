@@ -78,6 +78,12 @@ func OpenObj(file string) (Obj, error) {
 				raw: string(buf),
 			},
 		}, nil
+	} else if strings.HasSuffix(file, ".mbox") {
+		return &BaseObj{
+			&Mbox{
+				tableName: file,
+			},
+		}, nil
 	}
 	return nil, nil
 }

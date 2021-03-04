@@ -14,7 +14,7 @@ func (self *BaseObj) Page(num int, size int) (page Obj) {
 	lines := []Line{}
 	for line := range self.Iter() {
 		if n >= start && n < end {
-			lines = append(lines, line)
+			lines = append(lines, line[1:])
 		}
 		n++
 	}

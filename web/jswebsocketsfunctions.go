@@ -75,6 +75,21 @@ var updateview = function(id, inner, oper){
 	}
 }
 
+var showPage = function(ele,value, offsetnum){
+	num = parseInt($(ele).parent().parent().find("#data-num").val())
+	if (offsetnum != null){
+		num += parseInt(offsetnum);
+		$(ele).parent().parent().find("#data-num").val(num);
+	}
+	size = parseInt($(ele).parent().parent().find("#data-size").val())
+	console.log(num,size)
+	SendAction("db","show-data",JSON.stringify({
+		size:size,
+		num:num,
+		db: value
+	}));
+}
+
 var actions = {
 	AddView: function(data){
 		id = data.id
@@ -93,27 +108,26 @@ var actions = {
 		subtitle = new Date().format("yyyy-MM-dd hh:mm:ss");
 		content = ""
 		if (id == "show-data"){
-			value = {
-				size: 100,
-				num:0,
-				db:data.value
-			}
+			
 			// TODO
-			content = "<button class=\"btn btn-info\" onclick='return SendAction(\"db\",\"show-data\",\'" + JSON.stringify(value) +  "\')'>Click To Show Data </button>"
+			tp = "show-data"
+			id = "db"
+			content = '<div class="row g-3"><div class="col-4"><label for="pagesize" class="visually-hidden">Page Size</label><input type="number" class="form-control" id="data-size" value="100"></div><div class="col-3"><label for="page" class="visually-hidden">Page</label><input type="number" class="form-control" id="data-num" placeholder="page num" value="0" ></div><div class="col-2"><button class="btn btn-primary mb-3" style="margin-top:5px" onclick="return showPage(this,\''+ data.value+'\')">Go To</button></div><div class="col-2"><button class="btn btn-primary mb-3" style="margin-top:5px" onclick="return showPage(this,\''+ data.value+'\',1)">Next Page</button></div></div>'
 		}else{
 			content = value
 		}
 		$.toast({type: 'info',
 			title: 'Notice!',
 			subtitle: subtitle,
-			content: '<h1>Follow it to next action!</h1> ' + content,
-			delay: 10000,})
+			content:  content,
+		})
 	},
 	SetView: function(data){
 		id = data.id
 		value = data.value
-		ele = document.getElementById(id)
-		ele.innerHTML = value 
+		updateview(id, value, "update")
+		//ele = document.getElementById(id)
+		//ele.innerHTML = value 
 	},
 	SetAttr: function(data){
 		id = data.id

@@ -13,4 +13,5 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/sirupsen/logrus v1.7.0
 	github.com/thedatashed/xlsxreader v1.1.6
+	golang.org/x/text v0.3.0
 )

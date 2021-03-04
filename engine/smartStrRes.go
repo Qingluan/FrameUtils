@@ -8,7 +8,7 @@ var (
 	// SmartExtractIP extract ip
 	SmartExtractIP = regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])`)
 	// SmartExtractURL extract url from string
-	SmartExtractURL = regexp.MustCompile(`(https?:\/\/(?:www\.|(?:!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?:!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})`)
+	SmartExtractURL = regexp.MustCompile(`(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]`)
 	// SmartExtractPair extract pair like a:b a=b
 	SmartExtractPair = regexp.MustCompile(`([\w\"\']+[\t\ ]*[:=](?:[\t\ ]*(?:[0-9]+|\".+?\")))`)
 	// SmartExtractJSON extract json from string

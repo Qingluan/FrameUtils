@@ -36,19 +36,26 @@ func dataFunc(flow FlowData, c *websocket.Conn) {
 			})
 			return
 		}
-		num := d["num"].(int)
+		num := int(d["num"].(float64))
 		size := 100
-		if siz, ok := d["size"]; ok {
-			size = siz.(int)
+		if _, ok := d["size"]; ok {
+			size = int(d["size"].(float64))
 		}
-		html := dbh.Page(num, size).ToHTML("data")
-		nextdataQueryD := map[string]interface{}{
-			"db":   db.(string),
-			"size": size,
-			"num":  num + 1,
-		}
-		nextDataQuery, _ := json.Marshal(nextdataQueryD)
-		html = fmt.Sprintf(`<button type="button" class="btn btn-primary" onclick="return SendAction(\"db\",\"\", '%s')"  >%s <span class="badge badge-light">%d</span></button>`, string(nextDataQuery), "Next Page", num) + html
+		html := dbh.Page(num, size).ToHTML("data", func(r, c int, v string) string {
+			if engine.SmartExtractURL.Match([]byte(v)) {
+				// fmt.Println("ok:", "match")
+				return fmt.Sprintf("<a href=\"%s\" >%s</a>", v, v)
+			}
+			// fmt.Println("no:", "match", v)
+			return v
+		})
+		// nextdataQueryD := map[string]interface{}{
+		// 	"db":   db.(string),
+		// 	"size": size,
+		// 	"num":  num + 1,
+		// }
+		// nextDataQuery, _ := json.Marshal(nextdataQueryD)
+		// html = fmt.Sprintf(`<button type="button" class="btn btn-primary" onclick="return SendAction(\"db\",\"\", '%s')"  >%s <span class="badge badge-light">%d</span></button>`, string(nextDataQuery), "Next Page", num) + html
 		c.WriteJSON(FlowData{
 			Tp:    "SetView",
 			Value: html,
