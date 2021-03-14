@@ -3,13 +3,22 @@ package task
 import (
 	"crypto/md5"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/Qingluan/jupyter/http"
+	jupyter "github.com/Qingluan/jupyter/http"
+)
+
+var (
+	DefaultTaskWaitChnnael   = make(chan []string, 24)
+	DefaultTaskOutputChannle = make(chan string, 36)
 )
 
 type TaskConfig struct {
@@ -18,6 +27,7 @@ type TaskConfig struct {
 	Others    []string `json:"others"`
 	Proxy     string   `json:"proxy"`
 	ReTry     int      `json:"try"`
+	logPath   string   `json:"logPath"`
 }
 
 func (tconfig TaskConfig) Get(name string) interface{} {
@@ -74,6 +84,18 @@ func (erro ErrObj) Args() []string {
 	return erro.args
 }
 
+func (tconfig TaskConfig) LogPath() string {
+	if tconfig.logPath == "" {
+		w := filepath.Join(os.TempDir(), "my-task")
+		if _, err := os.Stat(w); err != nil {
+			os.MkdirAll(w, os.ModePerm)
+		}
+		return w
+	} else {
+		return tconfig.logPath
+	}
+}
+
 type TaskPool struct {
 	config         *TaskConfig
 	ErrCounter     map[string]int
@@ -83,13 +105,13 @@ type TaskPool struct {
 	RunningChannel chan interface{}
 
 	TaskCounter sync.WaitGroup
-	call        func(args []string) (TaskObj, error)
+	call        map[string]func(config *TaskConfig, args []string) (TaskObj, error)
 	callinok    func(ok TaskObj)
 	callinerr   func(erro ErrObj)
 }
 
 func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, err error)) {
-	sess := http.NewSession()
+	sess := jupyter.NewSession()
 	proxy := task.config.Proxy
 	if proxy != "" {
 		if res, err := sess.Post(task.config.LogServer, map[string]string{
@@ -112,27 +134,72 @@ func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, 
 	}
 }
 
-func (task *TaskPool) Build(after func(ok TaskObj, res interface{}, err error)) {
+func (task *TaskPool) Patch(patchargs []string) {
+	if len(patchargs) < 1 {
+		return
+	}
+	op := patchargs[0]
+	if call, ok := task.call[op]; ok {
+		task.RunningChannel <- 1
+		task.TaskCounter.Add(1)
+		go func(args []string) {
+			log.Println("args:", args, task.config.LogPath())
+			defer func() {
+				<-task.RunningChannel
+				task.TaskCounter.Done()
+			}()
+			if obj, err := call(task.config, args); err != nil {
+				task.ErrChannel <- ErrObj{err, args}
+			} else if obj != nil {
+
+				task.OkChannel <- obj
+			} else {
+
+			}
+		}(patchargs[1:])
+	}
+}
+
+func (task *TaskPool) StateCall(config *TaskConfig, args []string) (ok TaskObj, err error) {
+	logfiles, err := ioutil.ReadDir(task.config.LogPath())
+	if err != nil {
+		return nil, err
+	}
+	fs := []string{}
+	for _, f := range logfiles {
+		fs = append(fs, f.Name())
+	}
+	buf, _ := json.Marshal(task.config)
+	buf2, _ := json.Marshal(fs)
+	d := TData{
+		"running": fmt.Sprintf("%d", len(task.RunningChannel)),
+		"wait":    fmt.Sprintf("%d", len(task.WaitChannel)),
+		"config":  string(buf),
+		"logs":    string(buf2),
+	}
+	out, _ := json.Marshal(d)
+	DefaultTaskOutputChannle <- string(out)
+	return nil, nil
+}
+
+func (task *TaskPool) PatchWebAPI() {
+	http.HandleFunc("/task/v1/api", task.config.TaskHandle)
+}
+
+func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err error)) {
 	tick := time.NewTicker(15 * time.Second)
+	task.SetRuntime("state", task.StateCall)
 	for {
 		select {
 		case args := <-task.WaitChannel:
-			if task.call != nil {
-				task.RunningChannel <- 1
-				task.TaskCounter.Add(1)
-				go func(args []string) {
-					defer func() {
-						<-task.RunningChannel
-						task.TaskCounter.Done()
-					}()
-					if obj, err := task.call(args); err != nil {
-						task.ErrChannel <- ErrObj{err, args}
-					} else {
-
-						task.OkChannel <- obj
-
-					}
-				}(args)
+			task.Patch(args)
+		case args := <-DefaultTaskWaitChnnael:
+			if len(args) > 0 {
+				if _, ok := task.call[args[0]]; ok {
+					task.Patch(args)
+				} else {
+					DefaultTaskWaitChnnael <- args
+				}
 			}
 		case okObj := <-task.OkChannel:
 			if task.callinok != nil {
@@ -192,8 +259,11 @@ func (task *TaskPool) clearErrCounter() {
 	}
 }
 
-func (task *TaskPool) SetRuntime(call func(args []string) (TaskObj, error)) {
-	task.call = call
+func (task *TaskPool) SetRuntime(name string, call func(config *TaskConfig, args []string) (TaskObj, error)) {
+	if task.call == nil {
+		task.call = make(map[string]func(config *TaskConfig, args []string) (TaskObj, error))
+	}
+	task.call[name] = call
 }
 
 func (task *TaskPool) SetOkCall(call func(o TaskObj)) {
