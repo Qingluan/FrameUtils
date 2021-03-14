@@ -28,6 +28,7 @@ type TaskConfig struct {
 	Proxy     string   `json:"proxy"`
 	ReTry     int      `json:"try"`
 	logPath   string   `json:"logPath"`
+	state     map[string]string
 }
 
 func (tconfig TaskConfig) Get(name string) interface{} {
@@ -309,6 +310,7 @@ func NewTaskConfigDefault(logServer string) *TaskConfig {
 		Others:    []string{},
 		Proxy:     "",
 		ReTry:     3,
+		state:     make(map[string]string),
 	}
 }
 
