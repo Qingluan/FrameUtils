@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	"github.com/google/uuid"
 )
 
@@ -337,8 +338,8 @@ func (o *ObjBody) ToObj() (base *BaseObj) {
 	// l := o.Len()
 	keysBuf := o.Body[:k]
 	realobjsBUf := o.Body[k:]
-	ds := []Dict{}
-	keys := Line{}
+	ds := []utils.Dict{}
+	keys := utils.Line{}
 	json.Unmarshal(realobjsBUf, &ds)
 
 	json.Unmarshal(keysBuf, &keys)

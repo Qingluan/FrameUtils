@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type BaseConnection struct {
@@ -13,13 +15,13 @@ type BaseConnection struct {
 	tableName    string
 	filterName   string
 	connecitonTp string
-	tables       map[string]Line
+	tables       map[string]utils.Line
 }
 
 func (self *BaseConnection) Close() error {
 	return nil
 }
-func (self *BaseConnection) header(...int) (l Line) {
+func (self *BaseConnection) header(...int) (l utils.Line) {
 	return
 }
 func (self *BaseConnection) Tp() string {
@@ -33,8 +35,8 @@ func (self *BaseConnection) Query(queryCmd string) (reader io.ReadCloser, err er
 	return
 }
 
-func (self *BaseConnection) Iter(tableFilter ...string) <-chan Line {
-	ch := make(chan Line)
+func (self *BaseConnection) Iter(tableFilter ...string) <-chan utils.Line {
+	ch := make(chan utils.Line)
 	reader, err := self.AllLine(tableFilter...)
 	if err != nil {
 		log.Fatal("All line err:", err)
@@ -55,7 +57,7 @@ func (self *BaseConnection) Iter(tableFilter ...string) <-chan Line {
 	}()
 	return ch
 }
-func (self *BaseConnection) ToJson(tables ...string) (ds []Dict) {
+func (self *BaseConnection) ToJson(tables ...string) (ds []utils.Dict) {
 	for line := range self.Iter(tables...) {
 		header := self.GetHead(line[0])
 		ds = append(ds, line[1:].FromKey(header))
@@ -63,7 +65,7 @@ func (self *BaseConnection) ToJson(tables ...string) (ds []Dict) {
 	return
 }
 
-func (self *BaseConnection) GetHead(k string) Line {
+func (self *BaseConnection) GetHead(k string) utils.Line {
 	return self.tables[k]
 }
 
@@ -71,7 +73,7 @@ func (self *BaseConnection) AllHeader() (err error) {
 	return
 }
 
-func (self *BaseConnection) ParseValue(value string) (line Line) {
+func (self *BaseConnection) ParseValue(value string) (line utils.Line) {
 	return
 }
 

@@ -13,7 +13,24 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
+	"github.com/fatih/color"
+)
+
+const (
+	DefaultTaskConfigString = `
+[default]
+
+taskNum = 100
+listen = :4099
+logserver = http://localhost:8084/log
+try = 3
+#logPath = 
+#others = 
+#proxy = 
+
+	`
 )
 
 var (
@@ -22,16 +39,18 @@ var (
 )
 
 type TaskConfig struct {
-	TaskNum   int      `json:"taskNum"`
-	LogServer string   `json:"logserver"`
-	Others    []string `json:"others"`
-	Proxy     string   `json:"proxy"`
-	ReTry     int      `json:"try"`
-	logPath   string   `json:"logPath"`
+	TaskNum   int      `json:"taskNum" config:"taskNum"`
+	Listen    string   `json:"listen" config:"listen"`
+	LogServer string   `json:"logserver" config:"logserver"`
+	Others    []string `json:"others" config:"others"`
+	Proxy     string   `json:"proxy" config:"proxy"`
+	ReTry     int      `json:"try" config:"try"`
+	logPath   string   `json:"logPath" config:"logPath"`
 	state     map[string]string
+	lock      sync.RWMutex
 }
 
-func (tconfig TaskConfig) Get(name string) interface{} {
+func (tconfig *TaskConfig) Get(name string) interface{} {
 	switch name {
 	case "num":
 		return tconfig.TaskNum
@@ -41,6 +60,8 @@ func (tconfig TaskConfig) Get(name string) interface{} {
 		return tconfig.Others
 	case "logserver":
 		return tconfig.LogServer
+	case "retry":
+		return tconfig.ReTry
 	default:
 		return ""
 	}
@@ -85,7 +106,7 @@ func (erro ErrObj) Args() []string {
 	return erro.args
 }
 
-func (tconfig TaskConfig) LogPath() string {
+func (tconfig *TaskConfig) LogPath() string {
 	if tconfig.logPath == "" {
 		w := filepath.Join(os.TempDir(), "my-task")
 		if _, err := os.Stat(w); err != nil {
@@ -97,6 +118,17 @@ func (tconfig TaskConfig) LogPath() string {
 	}
 }
 
+func (tconfig *TaskConfig) MakeSureTask(id string, runOrStop bool) {
+	tconfig.lock.Lock()
+	defer tconfig.lock.Unlock()
+	if runOrStop {
+		log.Println("+", color.New(color.FgGreen).Sprint(id))
+		tconfig.state[id] = "running"
+	} else {
+		delete(tconfig.state, id)
+	}
+}
+
 type TaskPool struct {
 	config         *TaskConfig
 	ErrCounter     map[string]int
@@ -104,11 +136,10 @@ type TaskPool struct {
 	ErrChannel     chan ErrObj
 	WaitChannel    chan []string
 	RunningChannel chan interface{}
-
-	TaskCounter sync.WaitGroup
-	call        map[string]func(config *TaskConfig, args []string) (TaskObj, error)
-	callinok    func(ok TaskObj)
-	callinerr   func(erro ErrObj)
+	TaskCounter    sync.WaitGroup
+	call           map[string]func(config *TaskConfig, args []string) (TaskObj, error)
+	callinok       func(ok TaskObj)
+	callinerr      func(erro ErrObj)
 }
 
 func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, err error)) {
@@ -172,19 +203,21 @@ func (task *TaskPool) StateCall(config *TaskConfig, args []string) (ok TaskObj, 
 	}
 	buf, _ := json.Marshal(task.config)
 	buf2, _ := json.Marshal(fs)
+	buf3, _ := json.Marshal(task.config.state)
 	d := TData{
 		"running": fmt.Sprintf("%d", len(task.RunningChannel)),
 		"wait":    fmt.Sprintf("%d", len(task.WaitChannel)),
 		"config":  string(buf),
 		"logs":    string(buf2),
+		"task":    string(buf3),
 	}
 	out, _ := json.Marshal(d)
 	DefaultTaskOutputChannle <- string(out)
 	return nil, nil
 }
 
-func (task *TaskPool) PatchWebAPI() {
-	http.HandleFunc("/task/v1/api", task.config.TaskHandle)
+func (tconfig TaskConfig) PatchWebAPI() {
+	http.HandleFunc("/task/v1/api", tconfig.TaskHandle)
 }
 
 func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err error)) {
@@ -294,13 +327,15 @@ func NewTaskPool(config *TaskConfig) *TaskPool {
 }
 
 func NewTaskConfig(fileName string) (t *TaskConfig) {
-	buf, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		log.Fatal("Read TaskConfig Err:", err)
-	}
 	t = new(TaskConfig)
-	json.Unmarshal(buf, t)
+	err := utils.Unmarshal(fileName, t)
+	t.state = make(map[string]string)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 	return
+
 }
 
 func NewTaskConfigDefault(logServer string) *TaskConfig {
@@ -314,21 +349,32 @@ func NewTaskConfigDefault(logServer string) *TaskConfig {
 	}
 }
 
-/*DefaultTaskConfig :
+/*DefaultTaskConfigJson :
 TaskNum:   100,
 LogServer: "http://localhost:8084/log",
 Others:    []string{},
 Proxy:     "",
 ReTry:     3,
 */
-func DefaultTaskConfig() string {
+func DefaultTaskConfigJson() string {
 	t := &TaskConfig{
 		TaskNum:   100,
-		LogServer: "http://localhost:8084/log",
+		LogServer: "http://localhost:8084/task/v1/log",
 		Others:    []string{},
 		Proxy:     "",
 		ReTry:     3,
+		Listen:    ":4099",
+		state:     make(map[string]string),
 	}
 	b, _ := json.MarshalIndent(t, "", "    ")
 	return string(b)
+}
+
+func DefaultTaskConfigIni() string {
+	return DefaultTaskConfigString
+}
+
+func (tconfig *TaskConfig) StartTaskWebServer() {
+	tconfig.PatchWebAPI()
+	log.Fatal(http.ListenAndServe(tconfig.Listen, nil))
 }

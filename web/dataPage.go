@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Qingluan/FrameUtils/engine"
+	"github.com/Qingluan/FrameUtils/utils"
 	"github.com/gorilla/websocket"
 )
 
@@ -42,7 +43,7 @@ func dataFunc(flow FlowData, c *websocket.Conn) {
 			size = int(d["size"].(float64))
 		}
 		html := dbh.Page(num, size).ToHTML("data", func(r, c int, v string) string {
-			if engine.SmartExtractURL.Match([]byte(v)) {
+			if utils.SmartExtractURL.Match([]byte(v)) {
 				// fmt.Println("ok:", "match")
 				return fmt.Sprintf("<a href=\"%s\" >%s</a>", v, v)
 			}

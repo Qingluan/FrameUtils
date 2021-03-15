@@ -1,4 +1,5 @@
 bou.ke/monkey v1.0.1/go.mod h1:FgHuK96Rv2Nlf+0u1OOVDpCMdsWyOFmeeketDHE7LIg=
+gitee.com/dark.H/Jupyter v0.0.0-20200928043516-73acadd15bd0 h1:eGV3ET+2SuyfkSBYrwOg9XZX9hbycasgcPQ0jZAQAog=
 gitee.com/dark.H/Jupyter v0.0.0-20200928043516-73acadd15bd0/go.mod h1:LY2u1ZMoYhdN0JiqEHgat/SWqyvjJutLNbJGrN45Q54=
 github.com/Benchkram/errz v0.0.0-20180825145403-619d291cb54f/go.mod h1:twnWNXfJK5tkeR2E3YIZI5t//54pW/QIbykQoKtAqtk=
 github.com/Equanox/gotron v0.2.23/go.mod h1:NIsLI7BT06TWQMspklCjtyy536p80QRD8bfqUx5jeK4=
@@ -16,6 +17,7 @@ github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da/go.mod h1:eHEWzANqSi
 github.com/akavel/rsrc v0.8.0/go.mod h1:uLoCtb9J+EyAqh+26kdrTgmzRBFPGOolLWKpdxkKq+c=
 github.com/akavel/rsrc v0.9.0/go.mod h1:uLoCtb9J+EyAqh+26kdrTgmzRBFPGOolLWKpdxkKq+c=
 github.com/alangpierce/go-forceexport v0.0.0-20160317203124-8f1d6941cd75/go.mod h1:uAXEEpARkRhCZfEvy/y0Jcc888f9tHCc1W7/UeEtreE=
+github.com/anaskhan96/soup v1.2.4 h1:or+sKs9QbzJGZVTYFmTs2VBateEywoq00a6K14z331E=
 github.com/anaskhan96/soup v1.2.4/go.mod h1:6YnEp9A2yywlYdM4EgDz9NEHclocMepEtku7wg6Cq3s=
 github.com/andybalholm/cascadia v1.1.0 h1:BuuO6sSfQNFRu1LppgbD25Hr2vLYW25JvxHs5zzsLTo=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=

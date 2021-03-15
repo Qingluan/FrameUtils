@@ -6,16 +6,18 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type SearchEngine struct {
 	Num      int    `json:"num"`
 	Root     string `json:"Root"`
 	Worker   []Obj
-	reciver  chan []Line
+	reciver  chan []utils.Line
 	sender   chan string
 	topOrder chan string
-	handle   func(lines []Line)
+	handle   func(lines []utils.Line)
 }
 
 func EngineInit(path ...string) *SearchEngine {
@@ -29,8 +31,8 @@ func EngineInit(path ...string) *SearchEngine {
 	}
 }
 
-func (self *SearchEngine) Factory(listen func(lines []Line)) {
-	self.reciver = make(chan []Line, self.Num)
+func (self *SearchEngine) Factory(listen func(lines []utils.Line)) {
+	self.reciver = make(chan []utils.Line, self.Num)
 	self.sender = make(chan string, 20)
 	self.topOrder = make(chan string)
 	waitFileArea := make(map[string]Obj)
@@ -83,7 +85,7 @@ func (self *SearchEngine) Factory(listen func(lines []Line)) {
 	}
 }
 
-func (self *SearchEngine) SetResultListener(listen func(lines []Line)) {
+func (self *SearchEngine) SetResultListener(listen func(lines []utils.Line)) {
 	self.handle = listen
 }
 

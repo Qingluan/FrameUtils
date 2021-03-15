@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type MysqlConnection struct {
@@ -40,7 +42,7 @@ func (self *MysqlConnection) AllHeader() {
 			break
 		}
 		table := strings.TrimSpace(tableInfo[1 : len(tableInfo)-1])
-		self.tables[table] = Line{}
+		self.tables[table] = utils.Line{}
 	}
 	for tableName := range self.tables {
 		reader, err := self.Query(fmt.Sprintf("mysql %s -e '%s'; ", self.Host, "desc "+tableName+";"))
@@ -51,7 +53,7 @@ func (self *MysqlConnection) AllHeader() {
 		headLines.ReadString(byte('\n'))
 		headLines.ReadString(byte('\n'))
 		headLines.ReadString(byte('\n'))
-		fields := Line{}
+		fields := utils.Line{}
 		for {
 			line, err := headLines.ReadString(byte('\n'))
 			if err != io.EOF {
@@ -67,8 +69,8 @@ func (self *MysqlConnection) AllHeader() {
 	}
 }
 
-func (self *MysqlConnection) ParseValue(value string) (line Line) {
+func (self *MysqlConnection) ParseValue(value string) (line utils.Line) {
 
-	line = splitByIgnoreQuote(value[1:len(value)-1], "|")
+	line = utils.SplitByIgnoreQuote(value[1:len(value)-1], "|")
 	return
 }

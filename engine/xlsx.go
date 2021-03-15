@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"github.com/Qingluan/FrameUtils/utils"
 	"github.com/thedatashed/xlsxreader"
 )
 
@@ -11,13 +12,13 @@ type Xlsx struct {
 	tables      []string
 }
 
-func AddLine(r []xlsxreader.Cell) (l Line) {
+func AddLine(r []xlsxreader.Cell) (l utils.Line) {
 	for _, v := range r {
 		l = append(l, v.Value)
 	}
 	return
 }
-func (self *Xlsx) GetHead(k string) Line {
+func (self *Xlsx) GetHead(k string) utils.Line {
 	for _, s := range self.obj.Sheets {
 		if k == s {
 			for row := range self.obj.ReadRows(k) {
@@ -28,8 +29,8 @@ func (self *Xlsx) GetHead(k string) Line {
 	return nil
 }
 
-func (self *Xlsx) Iter(filtertable ...string) <-chan Line {
-	ch := make(chan Line)
+func (self *Xlsx) Iter(filtertable ...string) <-chan utils.Line {
+	ch := make(chan utils.Line)
 	if filtertable != nil {
 		self.filtertable = filtertable[0]
 	}
@@ -49,7 +50,7 @@ func (self *Xlsx) Iter(filtertable ...string) <-chan Line {
 			}
 			for row := range self.obj.ReadRows(table) {
 				l := AddLine(row.Cells)
-				ch <- append(Line{table}, l...)
+				ch <- append(utils.Line{table}, l...)
 			}
 		}
 		close(ch)
@@ -61,7 +62,7 @@ func (self *Xlsx) Close() error {
 	return self.obj.Close()
 }
 
-func (self *Xlsx) header(k ...int) (l Line) {
+func (self *Xlsx) header(k ...int) (l utils.Line) {
 	if k != nil {
 		return self.GetHead(self.tables[k[0]])
 	}

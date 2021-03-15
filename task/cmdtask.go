@@ -38,6 +38,7 @@ func (cmd CmdObj) Error() error {
 }
 
 func CmdCall(tconfig *TaskConfig, args []string) (TaskObj, error) {
+
 	var cmd *exec.Cmd
 	var shellStr []string
 	if runtime.GOOS == "windows" {
@@ -56,6 +57,11 @@ func CmdCall(tconfig *TaskConfig, args []string) (TaskObj, error) {
 		return cmdObj, err
 	}
 	defer outfile.Close()
+
+	// 设置config 中任务的状态
+	tconfig.MakeSureTask(cmdObj.ID(), true)
+	defer tconfig.MakeSureTask(cmdObj.ID(), false)
+
 	cmd = exec.Command(shellStr[0], shellStr[1:]...)
 	cmd.Stdout = outfile
 	cmd.Stderr = outfile

@@ -2,6 +2,8 @@ package engine
 
 import (
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type BaseObj struct {
@@ -23,7 +25,7 @@ func (self *BaseObj) String() string {
 	return msg
 }
 
-func (self *BaseObj) Search(k string) (lines []Line) {
+func (self *BaseObj) Search(k string) (lines []utils.Line) {
 	if strings.Contains(k, "=") {
 		ks := strings.SplitN(k, "=", 2)
 		key, value := strings.TrimSpace(ks[0]), strings.TrimSpace(ks[1])
@@ -58,7 +60,7 @@ func (self *BaseObj) Search(k string) (lines []Line) {
 	return
 }
 
-func (self *BaseObj) GetHeader(k string) (header Line) {
+func (self *BaseObj) GetHeader(k string) (header utils.Line) {
 	if self.Tp() == "json" {
 		return (self.Base.(*JsonObj)).GetHead(k)
 	} else if self.Tp() == "sqltxt" {
@@ -71,7 +73,7 @@ func (self *BaseObj) GetHeader(k string) (header Line) {
 	return
 }
 
-func (self *BaseObj) Header(ks ...int) (header Line) {
+func (self *BaseObj) Header(ks ...int) (header utils.Line) {
 	if l := self.header(ks...); len(l) > 0 {
 		if len(l) > 0 {
 			return l
@@ -83,7 +85,7 @@ func (self *BaseObj) Header(ks ...int) (header Line) {
 	return
 }
 
-func (self *BaseObj) SearchTo(key string, linesChan chan []Line) {
+func (self *BaseObj) SearchTo(key string, linesChan chan []utils.Line) {
 	lines := self.Search(key)
 	linesChan <- lines
 }
@@ -91,7 +93,7 @@ func (self *BaseObj) Close() error {
 	return self.Close()
 }
 
-func (self *BaseObj) Work(sender chan string, reciver chan []Line) {
+func (self *BaseObj) Work(sender chan string, reciver chan []utils.Line) {
 	for {
 		op := <-sender
 		if op == "[END]" {
@@ -101,7 +103,7 @@ func (self *BaseObj) Work(sender chan string, reciver chan []Line) {
 	}
 }
 
-func (self *BaseObj) AsJson() (ds []Dict) {
+func (self *BaseObj) AsJson() (ds []utils.Dict) {
 	if self.Tp() == "json" {
 		return (self.Base.(*JsonObj)).Datas
 	} else if self.Tp() == "sqltxt" {
@@ -120,7 +122,7 @@ func (self *BaseObj) AsJson() (ds []Dict) {
 	return
 }
 
-func (self *BaseObj) Where(filter func(lineno int, line Line, wordno int, word string) bool) (newObj *BaseObj) {
+func (self *BaseObj) Where(filter func(lineno int, line utils.Line, wordno int, word string) bool) (newObj *BaseObj) {
 	header := self.Header()
 	// fmt.Println(header)
 	jsonObj := &JsonObj{

@@ -5,13 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 func (self *BaseObj) Page(num int, size int) (page Obj) {
 	start := num * size
 	end := num*size + size
 	n := 0
-	lines := []Line{}
+	lines := []utils.Line{}
 	for line := range self.Iter() {
 		if n >= start && n < end {
 			lines = append(lines, line[1:])

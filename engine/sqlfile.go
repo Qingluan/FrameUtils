@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 const (
@@ -18,9 +20,9 @@ const (
 type SqlTxt struct {
 	obj          *bufio.Scanner
 	raw          string
-	headers      map[string]Line
-	datas        map[string][]Dict
-	cacheLines   map[string][]Line
+	headers      map[string]utils.Line
+	datas        map[string][]utils.Dict
+	cacheLines   map[string][]utils.Line
 	sqlType      int
 	sqlLineEnd   string
 	nowheader    string
@@ -45,7 +47,7 @@ func Sqlname(a string) string {
 	return a
 }
 
-func (self *SqlTxt) ParseSqlValue(v string) (tableName string, line Line) {
+func (self *SqlTxt) ParseSqlValue(v string) (tableName string, line utils.Line) {
 
 	fsss := strings.Fields(v)
 	if len(fsss) < 2 {
@@ -69,7 +71,7 @@ func (self *SqlTxt) ParseSqlValue(v string) (tableName string, line Line) {
 		log.Fatal("Err not found:", v)
 		// return "", ""
 	}
-	for _, field := range splitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",") {
+	for _, field := range utils.SplitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",") {
 		if l := strings.TrimSpace(field); l != "" {
 			if l == "N'" {
 				fmt.Println("Bug line:", v)
@@ -82,7 +84,7 @@ func (self *SqlTxt) ParseSqlValue(v string) (tableName string, line Line) {
 	return
 
 }
-func (self *SqlTxt) GetHead(k string) Line {
+func (self *SqlTxt) GetHead(k string) utils.Line {
 	header := self.headers[k]
 	if header != nil {
 		// d := values.FromKey(header)
@@ -91,7 +93,7 @@ func (self *SqlTxt) GetHead(k string) Line {
 	return nil
 }
 
-func (self *SqlTxt) ParseSqlHeader(v string) (tableName string, line Line) {
+func (self *SqlTxt) ParseSqlHeader(v string) (tableName string, line utils.Line) {
 
 	tableName = Sqlname(strings.Fields(v)[2])
 	if strings.Contains(tableName, "[dbo]") {
@@ -99,7 +101,7 @@ func (self *SqlTxt) ParseSqlHeader(v string) (tableName string, line Line) {
 	}
 	fieldsPre := strings.SplitN(v, "(", 2)[1]
 	// fmt.Println("Header Mid:", fieldsPre)
-	for _, field := range splitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",", "()") {
+	for _, field := range utils.SplitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",", "()") {
 		// fmt.Println("f:", field)
 		if l := strings.TrimSpace(field); l != "" {
 			fieldName := Sqlname(strings.Fields(l)[0])
@@ -128,11 +130,11 @@ func (self *SqlTxt) switchSqlTp(data []byte) {
 
 }
 
-func (self *SqlTxt) Iter(header ...string) <-chan Line {
-	ch := make(chan Line)
+func (self *SqlTxt) Iter(header ...string) <-chan utils.Line {
+	ch := make(chan utils.Line)
 	self.obj = bufio.NewScanner(strings.NewReader(self.raw))
 	if self.headers == nil {
-		self.headers = make(map[string]Line)
+		self.headers = make(map[string]utils.Line)
 	}
 
 	if header != nil {
@@ -141,7 +143,7 @@ func (self *SqlTxt) Iter(header ...string) <-chan Line {
 	if len(self.cacheLines) == 0 {
 		// fmt.Println("--- 0")
 		// all := 0
-		self.cacheLines = make(map[string][]Line)
+		self.cacheLines = make(map[string][]utils.Line)
 		self.obj.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			if atEOF && len(data) == 0 {
 				return 0, nil, nil
@@ -190,12 +192,12 @@ func (self *SqlTxt) Iter(header ...string) <-chan Line {
 				if self.filterheader != "" && tbName != self.filterheader {
 					continue
 				}
-				iterLine := append(Line{tbName}, l...)
+				iterLine := append(utils.Line{tbName}, l...)
 				if as, ok := self.cacheLines[tbName]; ok {
 					as = append(as, iterLine)
 					self.cacheLines[tbName] = as
 				} else {
-					self.cacheLines[tbName] = []Line{iterLine}
+					self.cacheLines[tbName] = []utils.Line{iterLine}
 				}
 
 				ch <- iterLine
@@ -226,11 +228,11 @@ func (self *SqlTxt) Close() error {
 	return nil
 }
 
-func (self *SqlTxt) header(k ...int) (l Line) {
+func (self *SqlTxt) header(k ...int) (l utils.Line) {
 	return
 }
 
-func (self *SqlTxt) ToJson() (ds []Dict) {
+func (self *SqlTxt) ToJson() (ds []utils.Dict) {
 	for line := range self.Iter() {
 		// fmt.Println("tb:", line)
 		tb, values := line[0], line[1:]

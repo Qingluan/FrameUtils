@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	"github.com/thedatashed/xlsxreader"
 )
 
@@ -49,7 +50,7 @@ func OpenObj(file string) (Obj, error) {
 		}, nil
 	} else if strings.HasSuffix(file, ".json") {
 		buf, err := ioutil.ReadFile(file)
-		v := []Dict{}
+		v := []utils.Dict{}
 		err = json.Unmarshal(buf, &v)
 		if err != nil {
 			log.Println(err)

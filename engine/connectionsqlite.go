@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type SqliteConnection struct {
@@ -21,8 +23,8 @@ func (self *SqliteConnection) AllLine(tables ...string) (reader io.ReadCloser, e
 	return
 }
 
-func (self *SqliteConnection) ParseValue(value string) (line Line) {
-	line = splitByIgnoreQuote(value, "|")
+func (self *SqliteConnection) ParseValue(value string) (line utils.Line) {
+	line = utils.SplitByIgnoreQuote(value, "|")
 	return
 }
 
@@ -38,14 +40,14 @@ func (self *SqliteConnection) AllHeader() (err error) {
 		log.Fatal("read header error")
 	}
 
-	for _, headerstr := range splitByIgnoreQuote(string(allBuf), ");") {
-		var line Line
+	for _, headerstr := range utils.SplitByIgnoreQuote(string(allBuf), ");") {
+		var line utils.Line
 
 		tableName := Sqlname(strings.Fields(headerstr)[2])
 		fieldsPre := strings.SplitN(headerstr, "(", 2)[1]
 		// fmt.Println("Header Mid:", fieldsPre)
 
-		for _, field := range splitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",", "()") {
+		for _, field := range utils.SplitByIgnoreQuote(fieldsPre[:strings.LastIndex(fieldsPre, ")")], ",", "()") {
 			// fmt.Println("f:", field)
 			if l := strings.TrimSpace(field); l != "" {
 				fieldName := Sqlname(strings.Fields(l)[0])

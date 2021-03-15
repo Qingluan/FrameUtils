@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	"github.com/fatih/color"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -220,8 +221,8 @@ func parseMime(raw string) string {
 
 }
 
-func (self *Mbox) Iter(header ...string) <-chan Line {
-	ch := make(chan Line)
+func (self *Mbox) Iter(header ...string) <-chan utils.Line {
+	ch := make(chan utils.Line)
 	if header != nil {
 		self.fillterheader = header[0]
 	}
@@ -262,14 +263,14 @@ func (self *Mbox) Iter(header ...string) <-chan Line {
 				// fmt.Println(color.New(color.FgBlue).Sprint(toreal))
 
 			}
-			line := Line{name, fr.String(), strings.Join(tostrs, " "), date.String(), sub}
+			line := utils.Line{name, fr.String(), strings.Join(tostrs, " "), date.String(), sub}
 
 			if err == nil {
 				line.Push(string(body))
 			}
 			// line := strings.TrimSpace(self.obj.Text())
-			// l := Line(strings.Fields(line))
-			// ch <- append(Line{self.tableName
+			// l := utils.Line(strings.Fields(line))
+			// ch <- append(utils.Line{self.tableName
 			ch <- line
 			c++
 		}
@@ -278,9 +279,9 @@ func (self *Mbox) Iter(header ...string) <-chan Line {
 	return ch
 }
 
-func (self *Mbox) GetHead(k string) Line {
+func (self *Mbox) GetHead(k string) utils.Line {
 	name := filepath.Base(self.tableName)
-	return Line{name, "From", "To", "Date", "Subject", "Body"}
+	return utils.Line{name, "From", "To", "Date", "Subject", "Body"}
 }
 
 func (self *Mbox) Close() error {
@@ -289,7 +290,7 @@ func (self *Mbox) Close() error {
 	}
 	return nil
 }
-func (self *Mbox) header(i ...int) (l Line) {
+func (self *Mbox) header(i ...int) (l utils.Line) {
 	headers := self.GetHead("")
 	if i != nil {
 		l = append(l, headers[i[0]])

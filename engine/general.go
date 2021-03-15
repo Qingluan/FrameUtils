@@ -1,17 +1,19 @@
 package engine
 
+import "github.com/Qingluan/FrameUtils/utils"
+
 type ArraysObj struct {
 	EmptyBaseClass
 	// Arrays []Line
 }
 
-func FromArrays(doubleArray [][]string, keys ...Line) Obj {
+func FromArrays(doubleArray [][]string, keys ...utils.Line) Obj {
 
-	arrays := []Line{}
+	arrays := []utils.Line{}
 	for _, v := range doubleArray {
-		arrays = append(arrays, Line(v))
+		arrays = append(arrays, utils.Line(v))
 	}
-	k := Line{}
+	k := utils.Line{}
 	if keys != nil {
 		k = keys[0]
 	}
@@ -23,9 +25,9 @@ func FromArrays(doubleArray [][]string, keys ...Line) Obj {
 	}
 }
 
-func FromLines(arrays []Line, keys ...Line) Obj {
+func FromLines(arrays []utils.Line, keys ...utils.Line) Obj {
 
-	k := Line{}
+	k := utils.Line{}
 	if keys != nil {
 		k = keys[0]
 	}

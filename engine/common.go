@@ -1,15 +1,17 @@
 package engine
 
+import "github.com/Qingluan/FrameUtils/utils"
+
 type EmptyBaseClass struct {
-	Arrays []Line
-	Key    Line
+	Arrays []utils.Line
+	Key    utils.Line
 }
 
-func (empty EmptyBaseClass) Iter(header ...string) <-chan Line {
-	ch := make(chan Line)
+func (empty EmptyBaseClass) Iter(header ...string) <-chan utils.Line {
+	ch := make(chan utils.Line)
 	go func() {
 		for _, l := range empty.Arrays {
-			ch <- append(Line{""}, l...)
+			ch <- append(utils.Line{""}, l...)
 		}
 		close(ch)
 	}()
@@ -17,7 +19,7 @@ func (empty EmptyBaseClass) Iter(header ...string) <-chan Line {
 }
 
 func (empty EmptyBaseClass) Close() error {
-	empty.Arrays = []Line{}
+	empty.Arrays = []utils.Line{}
 	return nil
 }
 
@@ -25,7 +27,7 @@ func (empty EmptyBaseClass) Tp() string {
 	return "Empty"
 }
 
-func (empty EmptyBaseClass) header(keylength ...int) (l Line) {
+func (empty EmptyBaseClass) header(keylength ...int) (l utils.Line) {
 	if len(empty.Key) > 0 {
 		return empty.Key
 	} else if len(empty.Arrays) > 0 {

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 /*Join usage
@@ -13,8 +15,8 @@ Join two Frame by keys, if not set keys use first key
 func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) {
 	headerL := self.Header()
 	headerR := other.Header()
-	var mergeHeader Line
-	var diffHeader Line
+	var mergeHeader utils.Line
+	var diffHeader utils.Line
 	lft := false
 	useLast := false
 	if opt&OPT_JOINT_NO_SAME > 0 {
@@ -38,8 +40,8 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 	if keys == nil {
 		keys = []string{mergeHeader[0]}
 	}
-	ltmp := []Dict{}
-	rtmp := []Dict{}
+	ltmp := []utils.Dict{}
+	rtmp := []utils.Dict{}
 
 	choosed := []int{}
 	haveUsed := map[int]bool{}
@@ -47,7 +49,7 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 
 		for liner := range other.Iter() {
 			rd := liner.FromKey(headerR)
-			var matchd Dict
+			var matchd utils.Dict
 			choosedNo := 0
 			for linel := range self.Iter() {
 				if _, ok := haveUsed[choosedNo]; ok && useLast {
@@ -96,7 +98,7 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 		c := 0
 		for l := range self.Iter() {
 
-			if !ContainInt(choosed, c) {
+			if !utils.ContainInt(choosed, c) {
 				kkk := l.FromKey(headerL)
 				// fmt.Println("no match l:", kkk)
 				ltmp = append(ltmp, kkk)
@@ -107,7 +109,7 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 	} else {
 		for linel := range self.Iter() {
 			ld := linel.FromKey(headerL)
-			var matchd Dict
+			var matchd utils.Dict
 			choosedNo := 0
 			for liner := range other.Iter() {
 				rd := liner.FromKey(headerR)
@@ -143,7 +145,7 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 		c := 0
 		for l := range other.Iter() {
 
-			if !ContainInt(choosed, c) {
+			if !utils.ContainInt(choosed, c) {
 				rtmp = append(rtmp, l.FromKey(headerR))
 			}
 			c++
@@ -159,12 +161,12 @@ func (self *BaseObj) Join(other Obj, opt int, keys ...string) (newObj *BaseObj) 
 }
 
 // Match : match some
-func (baseobj *BaseObj) Match(line Line, keys ...string) bool {
+func (baseobj *BaseObj) Match(line utils.Line, keys ...string) bool {
 	for linel := range baseobj.Iter() {
 		if keys != nil {
 
 			d := linel.FromKey(baseobj.Header())
-			checklines := Line{}
+			checklines := utils.Line{}
 			for _, k := range keys {
 				if vvv, ok := d[k]; ok {
 					checklines = append(checklines, vvv.(string))

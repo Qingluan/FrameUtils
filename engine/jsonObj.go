@@ -1,22 +1,24 @@
 package engine
 
+import "github.com/Qingluan/FrameUtils/utils"
+
 type JsonObj struct {
-	Header    Line
+	Header    utils.Line
 	KeyMode   int
-	Datas     []Dict
+	Datas     []utils.Dict
 	tableName string
 }
 
-func (self *JsonObj) GetHead(k string) Line {
-	return Line{self.tableName}
+func (self *JsonObj) GetHead(k string) utils.Line {
+	return utils.Line{self.tableName}
 }
 
-func (self *JsonObj) Iter(filterobj ...string) <-chan Line {
-	ch := make(chan Line)
+func (self *JsonObj) Iter(filterobj ...string) <-chan utils.Line {
+	ch := make(chan utils.Line)
 	go func() {
 		c := 0
 		for _, d := range self.Datas {
-			l := Line{}
+			l := utils.Line{}
 			for _, v := range self.Header {
 
 				if vv, ok := d[v]; ok {
@@ -25,7 +27,7 @@ func (self *JsonObj) Iter(filterobj ...string) <-chan Line {
 					l = append(l, "")
 				}
 			}
-			ch <- append(Line{self.tableName}, l...)
+			ch <- append(utils.Line{self.tableName}, l...)
 			c++
 		}
 		close(ch)
@@ -39,11 +41,11 @@ func (s *JsonObj) Tp() string {
 func (self *JsonObj) Close() error {
 	return nil
 }
-func (self *JsonObj) header(KeySearchLengths ...int) (l Line) {
+func (self *JsonObj) header(KeySearchLengths ...int) (l utils.Line) {
 	if len(self.Header) != 0 {
 		return self.Header
 	} else {
-		tmp := make(Dict)
+		tmp := make(utils.Dict)
 		KeySearchLength := 0
 		if KeySearchLengths != nil {
 			KeySearchLength = KeySearchLengths[0]
