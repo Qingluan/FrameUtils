@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	// "github.com/Qingluan/FrameUtils/utils"
 )
@@ -11,7 +10,7 @@ func (bdict BDict) FromCmd(cmd string) BDict {
 	// var fs []string
 	fs := SplitByIgnoreQuote(cmd, ",")
 	for _, f := range fs {
-		fmt.Println(f)
+		// fmt.Println(f)
 		if strings.Contains(f, "=") {
 			fs2 := strings.SplitN(f, "=", 2)
 			name := strings.TrimSpace(fs2[0])

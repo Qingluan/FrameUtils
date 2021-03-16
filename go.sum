@@ -9,6 +9,8 @@ github.com/Qingluan/jupyter v1.0.2 h1:AV2Cr2jJKRHC+f9CN/CV4OPOUjmrYL0tcrwjCyj6j1
 github.com/Qingluan/jupyter v1.0.2/go.mod h1:QsJuCsXqw/o1fzvoQEqRZAQWh5ZWhI7gpS1PUYsaVgg=
 github.com/Qingluan/jupyter v1.0.3 h1:8FQ3XTs9/tmsYI8MjAj5FhLH1kjocGex1sRh3MmGqus=
 github.com/Qingluan/jupyter v1.0.3/go.mod h1:RVMnYqjHaXjJ2sIeuEEbARW+uPB12peaV1G//+yEHHE=
+github.com/Qingluan/jupyter v1.1.0 h1:yoQ18wsp4WK96cwakZD9UCadzLeTOLLnF5Ajqr8NLkM=
+github.com/Qingluan/jupyter v1.1.0/go.mod h1:ikUtD6hdq/Oo+Rr3yBpDmxXHDUozSjXiLAHRSNSG/LE=
 github.com/Qingluan/merkur v1.0.9/go.mod h1:PuKZ1zRaXk2fqbQVGbAWoZ1evTcHR2FcMYnIZ4dMilA=
 github.com/Qingluan/merkur v1.0.11/go.mod h1:spiOwswoAG1MQJqZUQ0LN4oA8SzX2xtUOPX4tjD3Pv0=
 github.com/VividCortex/ewma v1.1.1 h1:MnEK4VOv6n0RSY4vtRe3h11qjxL3+t0B8yOL8iMXdcM=

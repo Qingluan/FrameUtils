@@ -2,11 +2,11 @@ package task
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -21,16 +21,7 @@ func jsonWrite(w io.Writer, data TData) {
 	w.Write(buf)
 }
 
-func getCmdTaskID(args []string) string {
-	c := ""
-
-	for _, arg := range args {
-		c += fmt.Sprintf("%x", byte(arg[0]))
-	}
-	return c
-}
-
-func (config TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
+func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		body, err := ioutil.ReadAll(r.Body)
@@ -43,31 +34,70 @@ func (config TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 		if op, ok := data["oper"]; ok {
 			switch op {
 			case "pull":
-				if input, ok := data["input"]; ok {
-					fs := strings.Split(input.(string), ",")
-					DefaultTaskWaitChnnael <- append([]string{"cmd"}, fs...)
-					jsonWrite(w, TData{
+				WithOrErr(w, data, func(args ...interface{}) TData {
+					input := args[0].(string)
+					tp := args[1].(string)
+					objType := strings.TrimSpace(tp)
+					fs := strings.Split(input, ",")
+					DefaultTaskWaitChnnael <- append([]string{objType}, fs...)
+					return TData{
 						"state": "ok",
-						"id":    getCmdTaskID(fs),
-					})
-				}
+						"id":    objType + "-" + NewID(fs),
+					}
+				}, "input", "tp")
+
 			case "state":
-				if id, ok := data["id"]; ok {
+				WithOrErr(w, data, func(args ...interface{}) TData {
+					id := args[0].(string)
 					d := config.LogPath()
-					path := filepath.Join(d, id.(string)) + ".log"
+					path := filepath.Join(d, id) + ".log"
 					buf, err := ioutil.ReadFile(path)
 					if err != nil {
-						jsonWrite(w, TData{
+						return TData{
 							"state": "fail",
 							"log":   err.Error(),
-						})
+						}
 					} else {
-						jsonWrite(w, TData{
+						return TData{
 							"state": "ok",
 							"log":   string(buf),
-						})
+						}
 					}
-				}
+				}, "id")
+			case "clear":
+				WithOrErr(w, data, func(args ...interface{}) TData {
+					id := args[0].(string)
+					if fs, err := ioutil.ReadDir(config.LogPath()); err != nil {
+						return TData{"state": "fail", "log": err.Error()}
+					} else {
+						res := []string{}
+						msg := ""
+						r := config.LogPath()
+						for _, f := range fs {
+							if strings.Contains(f.Name(), id) {
+								if err := os.Remove(filepath.Join(r, f.Name())); err != nil {
+									msg += "\n" + f.Name() + " : " + err.Error()
+								} else {
+									res = append(res, f.Name())
+								}
+							}
+						}
+						return TData{"state": "ok", "log": TData{"success": res, "err": msg}}
+					}
+				}, "id")
+			case "ls":
+				WithOrErr(w, data, func(args ...interface{}) TData {
+					if fs, err := ioutil.ReadDir(config.LogPath()); err != nil {
+						return TData{"state": "fail", "log": err.Error()}
+					} else {
+						paths := []string{}
+						for _, f := range fs {
+							paths = append(paths, f.Name())
+						}
+						return TData{"state": "ok", "log": paths}
+					}
+				})
+
 			}
 		} else {
 			jsonWrite(w, TData{
@@ -76,7 +106,7 @@ func (config TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	default:
-		DefaultTaskWaitChnnael <- append([]string{"state"})
+		DefaultTaskWaitChnnael <- []string{"state"}
 		log := TData{}
 		json.Unmarshal([]byte(<-DefaultTaskOutputChannle), &log)
 		jsonWrite(w, TData{

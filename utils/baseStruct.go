@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+type Param interface{}
 type Line []string
 type BDict map[string]string
 type Dict map[string]interface{}
