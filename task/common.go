@@ -3,10 +3,7 @@ package task
 import (
 	"crypto/md5"
 	"fmt"
-	"log"
 	"strings"
-
-	"github.com/fatih/color"
 )
 
 const (
@@ -15,7 +12,7 @@ const (
 
 taskNum = 100
 listen = :4099
-logserver = http://localhost:8084/log
+logserver = http://localhost:4099/task/v1/log
 try = 3
 #logPath = 
 #others = 
@@ -32,6 +29,6 @@ var (
 func NewID(args []string) string {
 	c := strings.ReplaceAll(strings.Join(args, " "), " ", "")
 	buf := md5.Sum([]byte(c))
-	log.Println(color.New(color.FgYellow).Sprint(c))
+	// log.Println("create id by:", color.New(color.FgYellow).Sprint(c))
 	return fmt.Sprintf("%x", buf)
 }

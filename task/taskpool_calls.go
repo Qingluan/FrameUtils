@@ -23,6 +23,8 @@ func _to_end(path string, buf []byte) (err error) {
 	return
 }
 
+// 必须把TaskConfig 塞进TaskObj 里
+
 func CmdCall(tconfig *TaskConfig, args []string, extensions ...string) (TaskObj, error) {
 
 	var cmd *exec.Cmd
@@ -66,14 +68,16 @@ func CmdCall(tconfig *TaskConfig, args []string, extensions ...string) (TaskObj,
 	return cmdObj, nil
 }
 
-func HTTPCall(tconfig *TaskConfig, args []string, extensions ...string) (ObjHTTP, error) {
+func HTTPCall(tconfig *TaskConfig, args []string, extensions ...string) (TaskObj, error) {
 	sess := jupyter.NewSession()
 	var res *jupyter.SmartResponse
 	var err error
 	obj := ObjHTTP{
+
 		url:         strings.TrimSpace(args[0]),
 		args:        args,
 		afterHandle: extensions,
+		config:      tconfig,
 	}
 	if len(args) > 2 {
 		switch strings.TrimSpace(args[1]) {

@@ -5,20 +5,18 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/cheggaaa/pb"
+	jupyter "github.com/Qingluan/jupyter/http"
 	"github.com/fatih/color"
 )
 
 func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 	red := color.New(color.FgRed).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
-
+	yellow := color.New(color.FgYellow).SprintFunc()
 	log.Println(green("File Upload Endpoint Hit"))
 
 	// Parse our multipart form, 10 << 20 specifies a maximum
@@ -32,7 +30,7 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 	// fmt.Println(id, r.Form,r.Fo)
 	file, handler, err := r.FormFile(id)
 	if err != nil {
-		log.Println("Error Retrieving the File")
+		log.Println("Error Retrieving the File", "|", id, "|")
 		log.Println(red(err))
 		for k, f := range r.MultipartForm.File {
 			if k == id {
@@ -41,9 +39,11 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 			log.Println(k, f, id)
 		}
 		return
+	} else {
+		log.Println("form include:", id)
 	}
 	defer file.Close()
-	log.Println(green(fmt.Sprintf("Uploaded File: %+v\n", handler.Filename), green(fmt.Sprintf("File Size: %+v\n", handler.Size))), green(fmt.Sprintf("MIME Header: %+v\n", handler.Header)))
+	log.Println(green(fmt.Sprintf("Uploaded File: %s", handler.Filename), green(fmt.Sprintf("File Size: %d", handler.Size))), yellow(fmt.Sprintf("MIME Header: %+v", handler.Header)))
 	// Create a temporary file within our temp-images directory that follows
 	// a particular naming pattern
 	tempFile := filepath.Join(tconfig.LogPath(), id+".log")
@@ -85,50 +85,23 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Upload(id string, fileName string, target string) (string, error) {
-
-	fp, err := os.Open(fileName)
-	if err != nil {
+func Upload(id string, fileName string, target string, proxy string) (string, error) {
+	sess := jupyter.NewSession()
+	// var fi os.FileInfo
+	// var err error
+	// if fi, err = os.Stat(fileName); err != nil {
+	// 	return "", err
+	// }
+	if res, err := sess.Upload(target, fileName, id, map[string]string{
+		"id": id,
+	}, false, proxy); err != nil {
 		return "", err
-	}
-	var fi os.FileInfo
-	if fi, err = fp.Stat(); err != nil {
-		log.Fatal(err)
-	}
-	bar := pb.New64(fi.Size()).SetUnits(pb.U_BYTES).SetRefreshRate(time.Millisecond * 10)
-	bar.Start()
-
-	defer fp.Close()
-	r, w := io.Pipe()
-	mpw := multipart.NewWriter(w)
-
-	go func() {
-		var part io.Writer
-		defer w.Close()
-		defer fp.Close()
-
-		w1, _ := mpw.CreateFormField("id")
-		w1.Write([]byte(id))
-
-		if part, err = mpw.CreateFormFile(id, fi.Name()); err != nil {
-			log.Fatal(err)
+	} else {
+		ret, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return "", err
 		}
-		part = io.MultiWriter(part, bar)
-		if _, err = io.Copy(part, fp); err != nil {
-			log.Fatal(err)
-		}
-		if err = mpw.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-	resp, err := http.Post(target, mpw.FormDataContentType(), r)
-	if err != nil {
-		log.Fatal(err)
+		return string(ret), nil
 	}
-	defer resp.Body.Close()
-	ret, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	return string(ret), nil
+
 }

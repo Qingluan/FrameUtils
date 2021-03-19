@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
-	jupyter "github.com/Qingluan/jupyter/http"
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type TaskPool struct {
 	config         *TaskConfig
 	ErrCounter     map[string]int
+	ThrowCounter   map[string]int
 	OkChannel      chan TaskObj
 	ErrChannel     chan ErrObj
 	WaitChannel    chan []string
@@ -32,32 +33,18 @@ func NewTaskPool(config *TaskConfig) *TaskPool {
 		ErrChannel:     make(chan ErrObj, config.TaskNum),
 		WaitChannel:    make(chan []string, config.TaskNum),
 		RunningChannel: make(chan interface{}, config.TaskNum),
+		ThrowCounter:   make(map[string]int),
 	}
 }
 
 func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, err error)) {
-	sess := jupyter.NewSession()
 	proxy := task.config.Proxy
-	if proxy != "" {
-		if res, err := sess.Post(task.config.LogServer, map[string]string{
-			"data": ok.String(),
-			"id":   ok.ID(),
-		}, proxy); err != nil {
-			after(ok, res, err)
-		} else {
-			after(ok, res, err)
-		}
+	if res, err := Upload(ok.ID(), ok.String(), task.config.LogServer, proxy); err != nil {
+		after(ok, res, err)
 	} else {
-		if res, err := Upload(ok.ID(), ok.String(), task.config.LogServer); err != nil {
-			// if res, err := sess.Post(task.config.LogServer, map[string]string{
-			// 	"data": ok.String(),
-			// 	"id":   ok.ID(),
-			// }); err != nil {
-			after(ok, res, err)
-		} else {
-			after(ok, res, err)
-		}
+		after(ok, res, err)
 	}
+
 }
 
 func (task *TaskPool) Patch(patchargs []string) {
@@ -69,15 +56,17 @@ func (task *TaskPool) Patch(patchargs []string) {
 		task.RunningChannel <- 1
 		task.TaskCounter.Add(1)
 		go func(args []string) {
-			log.Println("args:", args, task.config.LogPath())
+			id := NewID(args)
+			log.Println(utils.Yellow("Start:", id))
 			defer func() {
 				<-task.RunningChannel
 				task.TaskCounter.Done()
+				log.Println(utils.Green("Finish:", id))
 			}()
 			if obj, err := call(task.config, args); err != nil {
+				log.Println(utils.UnderLine("Err:", id))
 				task.ErrChannel <- ErrObj{err, args}
 			} else if obj != nil {
-
 				task.OkChannel <- obj
 			} else {
 
@@ -110,10 +99,30 @@ func (task *TaskPool) StateCall(config *TaskConfig, args []string, extensions ..
 	return nil, nil
 }
 
+func (task *TaskPool) DelayRetryPass(args ...string) {
+	if v, ok := task.ThrowCounter[args[0]]; ok {
+		if v > 10 {
+
+			log.Println("task give up:", utils.Magenta(args[0]), v)
+			return
+		}
+
+		task.ThrowCounter[args[0]] = v + 1
+
+		log.Println("task pass:", utils.Magenta(args[0]), v)
+	} else {
+		task.ThrowCounter[args[0]] = 1
+
+		log.Println("task pass:", utils.Magenta(args[0], v))
+	}
+	time.Sleep(5 * time.Second)
+	DefaultTaskWaitChnnael <- args
+}
+
 func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err error)) {
 	tick := time.NewTicker(15 * time.Second)
 	task.SetRuntime("state", task.StateCall)
-
+	task.SetRuntime("http", HTTPCall)
 	for {
 		select {
 		case args := <-task.WaitChannel:
@@ -121,9 +130,11 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 		case args := <-DefaultTaskWaitChnnael:
 			if len(args) > 0 {
 				if _, ok := task.call[args[0]]; ok {
+					log.Println("task entry:", utils.Magenta(args[0]))
 					task.Patch(args)
 				} else {
-					DefaultTaskWaitChnnael <- args
+
+					task.DelayRetryPass(args...)
 				}
 			}
 		case okObj := <-task.OkChannel:
