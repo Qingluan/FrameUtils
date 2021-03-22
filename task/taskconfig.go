@@ -13,15 +13,15 @@ import (
 )
 
 type TaskConfig struct {
-	TaskNum   int      `json:"taskNum" config:"taskNum"`
-	Listen    string   `json:"listen" config:"listen"`
-	LogServer string   `json:"logserver" config:"logserver"`
-	Others    []string `json:"others" config:"others"`
-	Proxy     string   `json:"proxy" config:"proxy"`
-	ReTry     int      `json:"try" config:"try"`
-	logPath   string   `json:"logPath" config:"logPath"`
-	schema    string   `json:"schema" config:"schema"`
-	state     map[string]string
+	TaskNum    int      `json:"taskNum" config:"taskNum"`
+	Listen     string   `json:"listen" config:"listen"`
+	LogServer  string   `json:"logserver" config:"logserver"`
+	Others     []string `json:"others" config:"others"`
+	Proxy      string   `json:"proxy" config:"proxy"`
+	ReTry      int      `json:"try" config:"try"`
+	LogPathStr string   `json:"logPath" config:"logPath"`
+	Schema     string   `json:"schema" config:"schema"`
+	state      map[string]string
 	// 用来记录当前任务分配的服务器序号 Others[n] , n = (n + 1) % (len(Others))
 	taskDipatchCursor int
 	lock              sync.RWMutex
@@ -46,9 +46,9 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 	} else {
 		err := utils.Unmarshal(fileName, t)
 		t.state = make(map[string]string)
-		if t.schema == "" {
+		if t.Schema == "" {
 
-			t.schema = "http"
+			t.Schema = "http"
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -82,14 +82,14 @@ func (tconfig *TaskConfig) Get(name string) interface{} {
 }
 
 func (tconfig *TaskConfig) LogPath() string {
-	if tconfig.logPath == "" {
+	if tconfig.LogPathStr == "" {
 		w := filepath.Join(os.TempDir(), "my-task")
 		if _, err := os.Stat(w); err != nil {
 			os.MkdirAll(w, os.ModePerm)
 		}
 		return w
 	} else {
-		return tconfig.logPath
+		return tconfig.LogPathStr
 	}
 }
 
@@ -118,7 +118,7 @@ func NewTaskConfigDefault(logServer string) *TaskConfig {
 		Proxy:     "",
 		ReTry:     3,
 		Listen:    "0.0.0.0:4099",
-		schema:    "http",
+		Schema:    "http",
 		state:     make(map[string]string),
 	}
 }
@@ -138,7 +138,7 @@ func DefaultTaskConfigJson() string {
 		Proxy:     "",
 		ReTry:     3,
 		Listen:    ":4099",
-		schema:    "http",
+		Schema:    "http",
 		state:     make(map[string]string),
 	}
 	b, _ := json.MarshalIndent(t, "", "    ")

@@ -56,7 +56,7 @@ func (taskconfig *TaskConfig) SendToOtherServer(ip string, data TData) (reply TD
 		}
 	}
 
-	if res, err = sess.Json(fmt.Sprintf("%s://%s/task/v1/api", taskconfig.schema, ip), sendData); err != nil {
+	if res, err = sess.Json(fmt.Sprintf("%s://%s/task/v1/api", taskconfig.Schema, ip), sendData); err != nil {
 		return reply, err
 	} else {
 		data, _ := ioutil.ReadAll(res.Body)
