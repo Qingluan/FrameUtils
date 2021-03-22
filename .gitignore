@@ -10,7 +10,7 @@ Search/output
 console/AppController/AppController
 console/ConsoleSearcher/ConsoleSearcher
 console/NetTest/NetTest*
-service/TaskService/TaskService*
+services/TaskService/TaskService*
 *.exe
 *.sql
 *.txt
