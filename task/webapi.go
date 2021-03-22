@@ -31,21 +31,59 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		data := TData{}
 		json.Unmarshal(body, &data)
+		if configV, ok := data["config"]; ok {
+			config.Update(configV)
+		}
 		if op, ok := data["oper"]; ok {
 			switch op {
 			case "pull":
-				WithOrErr(w, data, func(args ...interface{}) TData {
-					input := args[0].(string)
-					tp := args[1].(string)
-					objType := strings.TrimSpace(tp)
-					fs := strings.Split(input, ",")
-					DefaultTaskWaitChnnael <- append([]string{objType}, fs...)
-					return TData{
-						"state": "ok",
-						"id":    objType + "-" + NewID(fs),
-					}
-				}, "input", "tp")
+				// 如果返回ok说明在当前taskServer处理，false 转发给了target
+				if reply, ok, err := config.ProtocolRound(data); ok {
+					WithOrErr(w, data, func(args ...interface{}) TData {
+						input := args[0].(string)
+						tp := args[1].(string)
+						objType := strings.TrimSpace(tp)
+						fs := strings.Split(input, ",")
+						DefaultTaskWaitChnnael <- append([]string{objType}, fs...)
+						return TData{
+							"state": "ok",
+							"id":    objType + "-" + NewID(fs),
+						}
+					}, "input", "tp")
+				} else if err != nil {
+					jsonWrite(w, TData{
+						"state": "fail",
+						"log":   err.Error(),
+					})
+				} else {
+					jsonWrite(w, reply)
+				}
 
+			// 转发的处理和pull一样只是返回不同
+			case "forward":
+				if reply, ok, err := config.ProtocolRound(data); ok {
+					WithOrErr(w, data, func(args ...interface{}) TData {
+						input := args[0].(string)
+						tp := args[1].(string)
+						objType := strings.TrimSpace(tp)
+						fs := strings.Split(input, ",")
+						DefaultTaskWaitChnnael <- append([]string{objType}, fs...)
+						return TData{
+							"state": "ok",
+							"id":    objType + "-" + NewID(fs),
+							"ip":    config.MyIP(),
+						}
+					}, "input", "tp")
+				} else if err != nil {
+					jsonWrite(w, TData{
+						"state": "fail",
+						"log":   err.Error(),
+					})
+				} else {
+					jsonWrite(w, reply)
+				}
+			case "config":
+				jsonWrite(w, config.Update(data))
 			case "state":
 				WithOrErr(w, data, func(args ...interface{}) TData {
 					id := args[0].(string)
@@ -114,4 +152,11 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 			"log":   log,
 		})
 	}
+}
+
+func (taskconfig *TaskConfig) GetMyState() TData {
+	DefaultTaskWaitChnnael <- []string{"state"}
+	log := TData{}
+	json.Unmarshal([]byte(<-DefaultTaskOutputChannle), &log)
+	return log
 }

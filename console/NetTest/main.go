@@ -13,15 +13,21 @@ import (
 )
 
 var (
-	target = "localhost"
-	tp     = "json"
+	target  = "localhost"
+	tp      = "json"
+	seemyip = false
 )
 
 func main() {
 	flag.StringVar(&target, "u", "http://localhost:4099", "set target")
 
 	flag.StringVar(&tp, "t", "json", "set target")
+	flag.BoolVar(&seemyip, "ip", false, "see my ip")
 	flag.Parse()
+	if seemyip {
+		fmt.Printf("my ip: %s =v=\n", utils.Green(utils.GetLocalIP()))
+		return
+	}
 	output := func(res *jupyter.SmartResponse, err error) {
 		if err != nil {
 			log.Fatal(color.New(color.FgRed).Sprint(err))

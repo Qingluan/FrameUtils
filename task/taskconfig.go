@@ -20,8 +20,11 @@ type TaskConfig struct {
 	Proxy     string   `json:"proxy" config:"proxy"`
 	ReTry     int      `json:"try" config:"try"`
 	logPath   string   `json:"logPath" config:"logPath"`
+	schema    string   `json:"schema" config:"schema"`
 	state     map[string]string
-	lock      sync.RWMutex
+	// 用来记录当前任务分配的服务器序号 Others[n] , n = (n + 1) % (len(Others))
+	taskDipatchCursor int
+	lock              sync.RWMutex
 }
 
 func NewTaskConfig(fileName string) (t *TaskConfig) {
@@ -139,4 +142,7 @@ func DefaultTaskConfigJson() string {
 
 func DefaultTaskConfigIni() string {
 	return DefaultTaskConfigString
+}
+func (taskConfig *TaskConfig) MyIP() (ip string) {
+	return utils.GetLocalIP()
 }

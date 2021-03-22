@@ -14,6 +14,7 @@ taskNum = 100
 listen = :4099
 logserver = http://localhost:4099/task/v1/log
 try = 3
+schema = http
 #logPath = 
 #others = 
 #proxy = 
