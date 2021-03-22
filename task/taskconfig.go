@@ -46,7 +46,10 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 	} else {
 		err := utils.Unmarshal(fileName, t)
 		t.state = make(map[string]string)
+		if t.schema == "" {
 
+			t.schema = "http"
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -115,6 +118,7 @@ func NewTaskConfigDefault(logServer string) *TaskConfig {
 		Proxy:     "",
 		ReTry:     3,
 		Listen:    "0.0.0.0:4099",
+		schema:    "http",
 		state:     make(map[string]string),
 	}
 }
@@ -134,6 +138,7 @@ func DefaultTaskConfigJson() string {
 		Proxy:     "",
 		ReTry:     3,
 		Listen:    ":4099",
+		schema:    "http",
 		state:     make(map[string]string),
 	}
 	b, _ := json.MarshalIndent(t, "", "    ")
