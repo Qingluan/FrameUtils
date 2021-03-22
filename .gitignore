@@ -9,12 +9,16 @@ Search/output
 *.db.header
 console/AppController/AppController
 console/ConsoleSearcher/ConsoleSearcher
+console/NetTest/NetTest*
+service/TaskService/TaskService*
 *.exe
 *.sql
 *.txt
 *.dat
 example
 exmaple/testsplit
+Docker/TaskService*
+Docker/NetTest*
 # example/appExample/appExample
 # example/appExample/main
 # example/appExample/.*
