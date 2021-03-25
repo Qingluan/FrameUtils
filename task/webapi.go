@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type TData map[string]interface{}
@@ -43,7 +45,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 						input := args[0].(string)
 						tp := args[1].(string)
 						objType := strings.TrimSpace(tp)
-						fs := strings.Split(input, ",")
+						fs := utils.SplitByIgnoreQuote(input, ",")
 						DefaultTaskWaitChnnael <- append([]string{objType}, fs...)
 						return TData{
 							"state": "ok",
