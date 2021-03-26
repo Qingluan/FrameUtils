@@ -93,6 +93,8 @@ func (task *TaskPool) StateCall(config *TaskConfig, args []string, extensions ..
 		"config":  string(buf),
 		"logs":    string(buf2),
 		"task":    string(buf3),
+		"errnum":  fmt.Sprintf("%d", len(task.ErrChannel)),
+		"lognum":  fmt.Sprintf("%d", len(fs)),
 	}
 	out, _ := json.Marshal(d)
 	DefaultTaskOutputChannle <- string(out)
