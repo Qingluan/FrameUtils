@@ -108,6 +108,7 @@ func (tconfig TaskConfig) PatchWebAPI() {
 	http.HandleFunc("/task/v1/api", tconfig.TaskHandle)
 	http.HandleFunc("/task/v1/log", tconfig.uploadFile)
 	http.HandleFunc("/task/v1/", tconfig.SimeplUI)
+	http.HandleFunc("/task/v1/taskfile", tconfig.DealWithUploadFile)
 
 }
 

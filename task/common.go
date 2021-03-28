@@ -3,7 +3,10 @@ package task
 import (
 	"crypto/md5"
 	"fmt"
+	"log"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 const (
@@ -27,9 +30,10 @@ var (
 	DefaultTaskOutputChannle = make(chan string, 36)
 )
 
-func NewID(args []string) string {
-	c := strings.ReplaceAll(strings.Join(args, " "), " ", "")
+func NewID(raw string) string {
+	// args, _ := utils.DecodeToOptions(raw)
+	c := strings.ReplaceAll(raw, " ", "")
 	buf := md5.Sum([]byte(c))
-	// log.Println("create id by:", color.New(color.FgYellow).Sprint(c))
+	log.Println("create id by:", utils.Yellow(c))
 	return fmt.Sprintf("%x", buf)
 }

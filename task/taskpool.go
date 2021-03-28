@@ -20,7 +20,7 @@ type TaskPool struct {
 	WaitChannel    chan []string
 	RunningChannel chan interface{}
 	TaskCounter    sync.WaitGroup
-	call           map[string]func(config *TaskConfig, args []string, extension ...string) (TaskObj, error)
+	call           map[string]func(config *TaskConfig, raw string) (TaskObj, error)
 	callinok       func(ok TaskObj)
 	callinerr      func(erro ErrObj)
 }
@@ -47,39 +47,40 @@ func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, 
 
 }
 
-func (task *TaskPool) Patch(patchargs []string) {
-	if len(patchargs) < 1 {
+func (task *TaskPool) Patch(callTp, raw string) {
+	if callTp == "" {
 		return
 	}
-	op := patchargs[0]
+	op := callTp
 	if call, ok := task.call[op]; ok {
 		task.RunningChannel <- 1
 		task.TaskCounter.Add(1)
-		go func(args []string) {
-			id := NewID(args)
-			log.Println(utils.Yellow("Start:", id))
+		go func(raw string) {
+			id := NewID(raw)
+			log.Println(utils.Yellow("Start:", id, raw))
 			defer func() {
 				<-task.RunningChannel
 				task.TaskCounter.Done()
 				log.Println(utils.Green("Finish:", id))
 			}()
-			if obj, err := call(task.config, args); err != nil {
+			if obj, err := call(task.config, raw); err != nil {
 				log.Println(utils.UnderLine("Err:", id))
-				task.ErrChannel <- ErrObj{err, args}
+				task.ErrChannel <- ErrObj{err, op, raw}
 			} else if obj != nil {
 				task.OkChannel <- obj
 			} else {
 
 			}
-		}(patchargs[1:])
+		}(raw)
 	}
 }
 
-func (task *TaskPool) StateCall(config *TaskConfig, args []string, extensions ...string) (ok TaskObj, err error) {
+func (task *TaskPool) StateCall(config *TaskConfig, raw string) (ok TaskObj, err error) {
 	logfiles, err := ioutil.ReadDir(task.config.LogPath())
 	if err != nil {
 		return nil, err
 	}
+	// args, kargs := utils.DecodeToOptions(raw)
 	fs := []string{}
 	for _, f := range logfiles {
 		fs = append(fs, f.Name())
@@ -128,12 +129,20 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 	for {
 		select {
 		case args := <-task.WaitChannel:
-			task.Patch(args)
+			if len(args) == 1 {
+				task.Patch(args[0], "")
+			} else if len(args) == 2 {
+				task.Patch(args[0], args[1])
+			} else {
+				log.Println(utils.BRed("err args from waiChannel:", args))
+			}
 		case args := <-DefaultTaskWaitChnnael:
-			if len(args) > 0 {
+			if len(args) == 1 {
+				task.Patch(args[0], "")
+			} else if len(args) == 2 {
 				if _, ok := task.call[args[0]]; ok {
-					log.Println("task entry:", utils.Magenta(args[0]))
-					task.Patch(args)
+					// log.Println("task entry:", utils.Magenta(args[0]))
+					task.Patch(args[0], args[1])
 				} else {
 
 					task.DelayRetryPass(args...)
@@ -149,6 +158,7 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 				go task.callinerr(errObj)
 			}
 			if task.ErrCount(errObj) {
+				errObj.LogToLocal(task.config.LogPath())
 				task.WaitChannel <- errObj.Args()
 			} else {
 				task.LogTo(errObj, after)
@@ -171,7 +181,7 @@ func (task *TaskPool) State() (wait int, running int, errCount int) {
 }
 
 func (task *TaskPool) ErrCount(errObj ErrObj) bool {
-
+	defer log.Println("[retry]:", utils.Yellow(errObj.ID(), " : ", task.ErrCounter[errObj.ID()]))
 	if c, ok := task.ErrCounter[errObj.ID()]; ok {
 		if c+1 < task.config.ReTry {
 			task.ErrCounter[errObj.ID()] = c + 1
@@ -197,9 +207,9 @@ func (task *TaskPool) clearErrCounter() {
 	}
 }
 
-func (task *TaskPool) SetRuntime(name string, call func(config *TaskConfig, args []string, extension ...string) (TaskObj, error)) {
+func (task *TaskPool) SetRuntime(name string, call func(config *TaskConfig, raw string) (TaskObj, error)) {
 	if task.call == nil {
-		task.call = make(map[string]func(config *TaskConfig, args []string, extension ...string) (TaskObj, error))
+		task.call = make(map[string]func(config *TaskConfig, raw string) (TaskObj, error))
 	}
 	task.call[name] = call
 }

@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -8,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
 	"github.com/fatih/color"
 )
@@ -104,4 +107,36 @@ func Upload(id string, fileName string, target string, proxy string) (string, er
 		return string(ret), nil
 	}
 
+}
+
+func (self *TaskConfig) DealWithUploadFile(w http.ResponseWriter, h *http.Request) {
+	if h.Method == "POST" {
+		f, _, err := h.FormFile("uploadFile")
+		if err != nil {
+			jsonWriteErr(w, err)
+			return
+		}
+		buffer := bufio.NewScanner(f)
+		buffer.Split(bufio.ScanLines)
+		runOk := 0
+		for buffer.Scan() {
+			line := buffer.Text()
+			lineStr := strings.TrimSpace(line)
+			// fmt.Println(lineStr, "|")
+			if strings.HasPrefix(lineStr, "http") {
+				fmt.Println(utils.Green("[http]", lineStr))
+			} else if strings.HasPrefix(lineStr, "tcp://") {
+				fmt.Println(utils.Blue("[tcp]", lineStr))
+			} else if strings.HasPrefix(lineStr, "run,") {
+				fmt.Println(utils.Yellow("[cmd]", lineStr))
+			} else {
+				fmt.Println("[ignore]", lineStr)
+				runOk -= 1
+			}
+		}
+		jsonWrite(w, TData{
+			"log":   fmt.Sprintf("%d", runOk),
+			"state": "ok",
+		})
+	}
 }

@@ -9,8 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type TData map[string]interface{}
@@ -23,7 +21,15 @@ func jsonWrite(w io.Writer, data TData) {
 	w.Write(buf)
 }
 
+func jsonWriteErr(w io.Writer, err error) {
+	jsonWrite(w, TData{
+		"log":   err.Error(),
+		"state": "fail",
+	})
+}
+
 func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
+
 	switch r.Method {
 	case "POST":
 		body, err := ioutil.ReadAll(r.Body)
@@ -45,11 +51,13 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 						input := args[0].(string)
 						tp := args[1].(string)
 						objType := strings.TrimSpace(tp)
-						fs := utils.SplitByIgnoreQuote(input, ",")
-						DefaultTaskWaitChnnael <- append([]string{objType}, fs...)
+
+						// fmt.Println("r:", args[0], "tp:", tp)
+						// fs := utils.SplitByIgnoreQuote(input, ",")
+						DefaultTaskWaitChnnael <- append([]string{objType}, input)
 						return TData{
 							"state": "ok",
-							"id":    objType + "-" + NewID(fs),
+							"id":    objType + "-" + NewID(input),
 						}
 					}, "input", "tp")
 				} else if err != nil {
@@ -68,11 +76,11 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 						input := args[0].(string)
 						tp := args[1].(string)
 						objType := strings.TrimSpace(tp)
-						fs := strings.Split(input, ",")
-						DefaultTaskWaitChnnael <- append([]string{objType}, fs...)
+						// fs := strings.Split(input, ",")
+						DefaultTaskWaitChnnael <- append([]string{objType}, input)
 						return TData{
 							"state": "ok",
-							"id":    objType + "-" + NewID(fs),
+							"id":    objType + "-" + NewID(input),
 							"ip":    config.MyIP(),
 						}
 					}, "input", "tp")
@@ -90,7 +98,10 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 				WithOrErr(w, data, func(args ...interface{}) TData {
 					id := args[0].(string)
 					d := config.LogPath()
-					path := filepath.Join(d, id) + ".log"
+					path := filepath.Join(d, id)
+					if !strings.HasSuffix(path, ".log") {
+						path += ".log"
+					}
 					buf, err := ioutil.ReadFile(path)
 					if err != nil {
 						return TData{

@@ -174,7 +174,7 @@ func (page *Page) RenderPage(jsArea ...string) *Page {
 					<script jsName="bootstrap">%s</script>
 					<script jsName="toast">%s</script>
 					<script jsname="base-functions">%s</script>
-					<script >%s</script>
+					<script jsname="uploadJS">%s</script>
 				</body>
 			</html>`, Jquery, BootstrapPopJS, BootstrapJS, ToastJS, baseFunctionJS+extend, js)
 				fmt.Fprint(w, h)

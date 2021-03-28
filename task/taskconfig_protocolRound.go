@@ -18,11 +18,21 @@ func (taskConfig *TaskConfig) ProtocolRound(data TData) (reply TData, ido bool, 
 			if err := json.Unmarshal([]byte(configstr.(string)), &config); err != nil {
 				return nil, true, err
 			}
-			taskNum, _ := strconv.Atoi(config["taskNum"].(string))
-			if runningNum < taskNum {
-				ido = true
-				return
+			switch config["taskNum"].(type) {
+			case float64:
+				// taskNum, _ := strconv.Atoi(.(string))
+				if runningNum < int(config["taskNum"].(float64)) {
+					ido = true
+					return
+				}
+			case string:
+				taskNum, _ := strconv.Atoi(config["taskNum"].(string))
+				if runningNum < taskNum {
+					ido = true
+					return
+				}
 			}
+
 		}
 
 	}

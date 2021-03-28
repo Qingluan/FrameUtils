@@ -7,12 +7,13 @@ import (
 type CmdObj struct {
 	pre    []string
 	args   []string
+	raw    string
 	err    error
 	config *TaskConfig
 }
 
 func (cmd CmdObj) ID() string {
-	return "cmd-" + NewID(cmd.args)
+	return "cmd-" + NewID(cmd.raw)
 }
 
 func (cmd CmdObj) Args() []string {

@@ -4,19 +4,21 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"log"
+	"path/filepath"
 	"strings"
 )
 
 type ErrObj struct {
-	Err  error
-	args []string
+	Err error
+	tp  string
+	raw string
 }
 
 func (erro ErrObj) String() string {
 	buf, err := json.Marshal(map[string]string{
 		"Tp":   "Err",
 		"Data": erro.Err.Error(),
-		"Args": strings.Join(erro.Args(), "|"),
+		"Args": erro.raw,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -36,5 +38,11 @@ func (erro ErrObj) ID() string {
 	return string(b)
 }
 func (erro ErrObj) Args() []string {
-	return erro.args
+	return []string{erro.tp, erro.raw}
+}
+
+func (erro ErrObj) LogToLocal(root string) {
+	id := NewID(erro.raw)
+	path := filepath.Join(root, "err-"+id) + ".log"
+	_to_end(path, []byte(erro.Err.Error()))
 }

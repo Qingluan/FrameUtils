@@ -3,6 +3,7 @@ package task
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
+	"github.com/Qingluan/merkur"
+	"golang.org/x/net/proxy"
 )
 
 const ()
@@ -25,10 +28,11 @@ func _to_end(path string, buf []byte) (err error) {
 
 // 必须把TaskConfig 塞进TaskObj 里
 
-func CmdCall(tconfig *TaskConfig, args []string, extensions ...string) (TaskObj, error) {
+func CmdCall(tconfig *TaskConfig, raw string) (TaskObj, error) {
 
 	var cmd *exec.Cmd
 	var shellStr []string
+	args := utils.SplitByIgnoreQuote(raw, ",")
 	cmdObj := CmdObj{
 		args:   args,
 		config: tconfig,
@@ -61,23 +65,34 @@ func CmdCall(tconfig *TaskConfig, args []string, extensions ...string) (TaskObj,
 		cmdObj.err = err
 		return cmdObj, nil
 	}
-	err = cmd.Wait()
-	if err != nil {
-		return nil, err
-	}
+	// err = cmd.Wait()
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return cmdObj, nil
 }
 
-func HTTPCall(tconfig *TaskConfig, args []string, extensions ...string) (TaskObj, error) {
+func HTTPCall(tconfig *TaskConfig, raw string) (TaskObj, error) {
 	sess := jupyter.NewSession()
 	var res *jupyter.SmartResponse
 	var err error
+	args, kargs := utils.DecodeToOptions(raw)
+	fmt.Println("Raw:", raw, "\nargs:", args, "\nkargs:", kargs)
 	obj := ObjHTTP{
-
-		url:         strings.TrimSpace(args[0]),
-		args:        args,
-		afterHandle: extensions,
-		config:      tconfig,
+		raw:    raw,
+		url:    args[0],
+		args:   args,
+		kargs:  kargs,
+		config: tconfig,
+	}
+	var proxy proxy.Dialer
+	if v, ok := kargs["proxy"]; ok {
+		proxy = merkur.NewProxyDialer(v)
+		log.Println("This Task Use Proxy:", utils.Magenta(v))
+		delete(kargs, "proxy")
+		sess.SetProxyDialer(proxy)
+	} else {
+		proxy = nil
 	}
 	if len(args) > 2 {
 		switch strings.TrimSpace(args[1]) {
@@ -104,14 +119,20 @@ func HTTPCall(tconfig *TaskConfig, args []string, extensions ...string) (TaskObj
 
 		}
 	} else {
-		res, err = sess.Get(strings.TrimSpace(args[0]))
+		if res, err = sess.Get(strings.TrimSpace(args[0])); err != nil {
+			obj.err = err
+		}
 
 	}
-
-	if extensions != nil {
+	if err != nil || obj.err != nil {
+		// obj.err = err
+		return obj, err
+	}
+	if len(kargs) > 0 {
 		es := map[string]string{}
-		for i, e := range extensions {
-			es[fmt.Sprintf("%d", i)] = e
+		// i := 0
+		for k, v := range kargs {
+			es[k] = v.(string)
 		}
 		o := res.CssExtract(es)
 		buf, err := json.Marshal(o)

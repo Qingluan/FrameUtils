@@ -1,17 +1,22 @@
 package task
 
-import "path/filepath"
+import (
+	"path/filepath"
+
+	"github.com/Qingluan/FrameUtils/utils"
+)
 
 type ObjHTTP struct {
-	url         string
-	args        []string
-	err         error
-	afterHandle []string
-	config      *TaskConfig
+	url    string
+	args   []string
+	raw    string
+	err    error
+	kargs  utils.Dict
+	config *TaskConfig
 }
 
 func (cmd ObjHTTP) ID() string {
-	return "http-" + NewID(cmd.args)
+	return "http-" + NewID(cmd.raw)
 }
 
 func (cmd ObjHTTP) Args() []string {
