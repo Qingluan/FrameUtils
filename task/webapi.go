@@ -93,7 +93,11 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					jsonWrite(w, reply)
 				}
 			case "config":
-				jsonWrite(w, config.Update(data))
+				info := config.UpdateMyConfig(data)
+				jsonWrite(w, TData{
+					"state": "ok",
+					"log":   info,
+				})
 			case "state":
 				WithOrErr(w, data, func(args ...interface{}) TData {
 					id := args[0].(string)

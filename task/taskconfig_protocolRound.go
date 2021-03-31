@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 
 	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
+	"github.com/Qingluan/merkur"
 )
 
 func (taskConfig *TaskConfig) ProtocolRound(data TData) (reply TData, ido bool, err error) {
@@ -46,6 +48,11 @@ func (taskconfig *TaskConfig) Forward(data TData) (reply TData, err error) {
 	return taskconfig.SendToOtherServer(otherServer, data)
 }
 
+func (taskconfig *TaskConfig) ForwardCustom(url string, oper string, data TData) (reply TData, err error) {
+	data["oper"] = oper
+	return taskconfig.SendToOtherServer(url, data)
+}
+
 func (taskconfig *TaskConfig) NextOthers() string {
 	taskconfig.taskDipatchCursor = (taskconfig.taskDipatchCursor + 1) % len(taskconfig.Others)
 	return taskconfig.Others[taskconfig.taskDipatchCursor]
@@ -54,7 +61,13 @@ func (taskconfig *TaskConfig) NextOthers() string {
 func (taskconfig *TaskConfig) SendToOtherServer(ip string, data TData) (reply TData, err error) {
 	var res *jupyter.SmartResponse
 	sess := jupyter.NewSession()
-	sess.SetSocks5Proxy(taskconfig.Proxy)
+	if taskconfig.Proxy != "" {
+		if pdialer := merkur.NewProxyDialer(taskconfig.Proxy); pdialer != nil {
+			sess.SetProxyDialer(pdialer)
+		} else {
+			log.Println(utils.Red("set proxy:", taskconfig.Proxy), " failed!! use default direct connect!")
+		}
+	}
 	sendData := utils.BDict{}
 	for k, v := range data {
 		switch v.(type) {
@@ -65,8 +78,8 @@ func (taskconfig *TaskConfig) SendToOtherServer(ip string, data TData) (reply TD
 			sendData[k] = fmt.Sprintf("%v", v)
 		}
 	}
-
-	if res, err = sess.Json(fmt.Sprintf("%s://%s/task/v1/api", taskconfig.Schema, ip), sendData); err != nil {
+	api := taskconfig.UrlApi(ip)
+	if res, err = sess.Json(api, sendData); err != nil {
 		return reply, err
 	} else {
 		data, _ := ioutil.ReadAll(res.Body)

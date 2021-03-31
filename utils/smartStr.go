@@ -40,6 +40,16 @@ type Ac struct {
 	matchr *regexp.Regexp
 }
 
+// ArrayContains : if array str contains key , will return true
+func ArrayContains(arrs []string, key string) bool {
+	for _, v := range arrs {
+		if v == key {
+			return true
+		}
+	}
+	return false
+}
+
 // Str panic err from NewSmartString
 func Str(raw string) (any *Any) {
 	any, err := NewSmartString(raw)

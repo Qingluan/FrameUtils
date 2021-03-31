@@ -12,8 +12,8 @@ var (
 
 	BYellow = color.New(color.FgWhite, color.BgYellow).SprintFunc()
 
-	BBlue = color.New(color.FgWhite, color.BgBlue).SprintFunc()
-
+	BBlue     = color.New(color.FgWhite, color.BgBlue).SprintFunc()
+	Red       = color.New(color.FgRed).SprintFunc()
 	BRed      = color.New(color.FgWhite, color.BgRed).SprintFunc()
 	UnderLine = color.New(color.Underline, color.Bold).SprintFunc()
 )
