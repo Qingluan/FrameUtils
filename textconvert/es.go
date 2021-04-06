@@ -138,6 +138,14 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 	for i, a := range esobjs {
 		req := elastic.NewBulkIndexRequest().Index(index).Id(fmt.Sprintf("%d", now+int64(i))).Type("es-file").Doc(a)
 		bulk = bulk.Add(req)
+		num := bulk.EstimatedSizeInBytes()
+
+		if float64(num)/float64(1024)/float64(1024) > 10 {
+			log.Println("Batch Size: ", float64(num)/float64(1024)/float64(1024), "MB")
+
+			bulk.Do(context.Background())
+			bulk = es.client.Bulk()
+		}
 		// bulk.Add(req)
 		// data, err := json.Marshal(a)
 		// if err != nil {
@@ -165,8 +173,7 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 		// 	log.Fatalf("Unexpected error: %s", err)
 		// }
 	}
-	num := bulk.EstimatedSizeInBytes()
-	log.Println("Batch Size: ", float64(num)/float64(1024)/float64(1024), "MB")
+	// num := bulk.EstimatedSizeInBytes()
 	// indexer.Close(context.Background())
 
 	// log.Println(utils.Yellow(bulkReq.NumberOfActions()))
