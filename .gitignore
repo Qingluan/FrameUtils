@@ -5,6 +5,10 @@ Search/output
 *.xls
 *.txt
 *.csv
+*.doc
+*.docx
+*.csv
+*.pdf
 *.db
 *.db.header
 console/AppController/AppController
