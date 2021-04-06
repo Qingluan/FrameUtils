@@ -56,11 +56,16 @@ func (scan *ScanTask) Scan() {
 	go func(ch chan string, okch chan Res) {
 		runningNum := 0
 		var waiter sync.WaitGroup
+		all := 0
 		for {
 			path := <-ch
 			if fu, ok := scan.FileHandle[scan.GetType(path)]; ok {
-				fmt.Printf("got : %s                                      \r", filepath.Base(path))
+				if all%100 == 0 {
+					fmt.Printf("got :%d : %s                                      \r", all, filepath.Base(path))
+
+				}
 				runningNum++
+				all++
 				waiter.Add(1)
 				go func(p string, okch chan Res) {
 					defer waiter.Done()

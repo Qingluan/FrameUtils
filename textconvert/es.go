@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"runtime"
 	"time"
 
 	"github.com/Qingluan/FrameUtils/utils"
@@ -70,6 +71,8 @@ func NewEsCli(name, pwd string, address ...string) (es *EsClient, err error) {
 	es.client, err = elastic.NewClient(
 		elastic.SetURL(address...),
 		elastic.SetSniff(false),
+		// elastic.SetRetrier(elastic.NewRetr()),
+		elastic.SetGzip(true),
 		elastic.SetHealthcheckInterval(10*time.Second),
 	)
 
@@ -119,12 +122,23 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 	// 	FlushBytes:    int(5e+6),        // The flush threshold in bytes
 	// 	FlushInterval: 10 * time.Second, // The periodic flush interval
 	// })
-	bulkReq := es.client.Bulk()
+	// bulkReq := es.client.Bulk()
+	// bulk := es.client.Strea().MaxSize(5 * 1024 * 1024)
+	// Setup a bulk processor
+	bulk, err := es.client.BulkProcessor().Name("MyBackgroundWorker-1").
+		Workers(runtime.NumCPU()).BulkActions(2000). // commit if # requests >= 1000
+		BulkSize(2 << 10).                           // commit if size of requests >= 2 MB
+		FlushInterval(30 * time.Second).             // commit every 30s
+		Do(context.Background())
+	if err != nil {
+
+	}
+	now, _ := es.client.Count(index).Do(context.Background())
 
 	for i, a := range esobjs {
-		req := elastic.NewBulkIndexRequest().Index(index).Id(fmt.Sprintf("%d", i)).Type("es-file").Doc(a)
-		bulkReq = bulkReq.Add(req)
-
+		req := elastic.NewBulkIndexRequest().Index(index).Id(fmt.Sprintf("%d", now+int64(i))).Type("es-file").Doc(a)
+		// bulkReq = bulkReq.Add(req)
+		bulk.Add(req)
 		// data, err := json.Marshal(a)
 		// if err != nil {
 		// 	log.Printf("Cannot encode article %s: %s", a.Path, err.Error())
@@ -156,13 +170,13 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 	// log.Println(utils.Yellow(bulkReq.NumberOfActions()))
 	// time.Sleep(5 * time.Second)
 
-	if res, err := bulkReq.Do(context.Background()); err != nil {
-		failed = uint64(len(esobjs))
-		log.Println("err:", err)
-	} else {
-		success = uint64(len(res.Indexed()))
-		log.Println("Res:", res.Failed(), res.Created())
-	}
-
+	// if res, err := bulkReq.Do(context.Background()); err != nil {
+	// 	failed = uint64(len(esobjs))
+	// 	log.Println("err:", err)
+	// } else {
+	// 	success = uint64(len(res.Succeeded()))
+	// 	// log.Println("Res:", res.Failed(), res.Created())
+	// }
+	success = uint64(bulk.Stats().Committed)
 	return
 }
