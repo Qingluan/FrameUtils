@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"runtime"
 	"time"
 
 	"github.com/Qingluan/FrameUtils/utils"
@@ -123,22 +122,23 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 	// 	FlushInterval: 10 * time.Second, // The periodic flush interval
 	// })
 	// bulkReq := es.client.Bulk()
-	// bulk := es.client.Strea().MaxSize(5 * 1024 * 1024)
+	bulk := es.client.Bulk()
 	// Setup a bulk processor
-	bulk, err := es.client.BulkProcessor().Name("MyBackgroundWorker-1").
-		Workers(runtime.NumCPU()).BulkActions(2000). // commit if # requests >= 1000
-		BulkSize(2 << 10).                           // commit if size of requests >= 2 MB
-		FlushInterval(30 * time.Second).             // commit every 30s
-		Do(context.Background())
-	if err != nil {
+	// bulk, err := es.client.BulkProcessor().Name("MyBackgroundWorker-1").
+	// 	Workers(runtime.NumCPU()).
+	// 	BulkActions(2000).               // commit if # requests >= 1000
+	// 	BulkSize(2 << 20).               // commit if size of requests >= 2 MB
+	// 	FlushInterval(10 * time.Second). // commit every 30s
+	// 	Do(context.Background())
+	// if err != nil {
 
-	}
+	// }
 	now, _ := es.client.Count(index).Do(context.Background())
 
 	for i, a := range esobjs {
 		req := elastic.NewBulkIndexRequest().Index(index).Id(fmt.Sprintf("%d", now+int64(i))).Type("es-file").Doc(a)
-		// bulkReq = bulkReq.Add(req)
-		bulk.Add(req)
+		bulk = bulk.Add(req)
+		// bulk.Add(req)
 		// data, err := json.Marshal(a)
 		// if err != nil {
 		// 	log.Printf("Cannot encode article %s: %s", a.Path, err.Error())
@@ -165,18 +165,20 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 		// 	log.Fatalf("Unexpected error: %s", err)
 		// }
 	}
+	num := bulk.EstimatedSizeInBytes()
+	log.Println("Batch Size: ", float64(num)/float64(1024)/float64(1024), "MB")
 	// indexer.Close(context.Background())
 
 	// log.Println(utils.Yellow(bulkReq.NumberOfActions()))
 	// time.Sleep(5 * time.Second)
 
-	// if res, err := bulkReq.Do(context.Background()); err != nil {
-	// 	failed = uint64(len(esobjs))
-	// 	log.Println("err:", err)
-	// } else {
-	// 	success = uint64(len(res.Succeeded()))
-	// 	// log.Println("Res:", res.Failed(), res.Created())
-	// }
-	success = uint64(bulk.Stats().Committed)
+	if res, err := bulk.Do(context.Background()); err != nil {
+		failed = uint64(len(esobjs))
+		log.Println("err:", err)
+	} else {
+		success = uint64(len(res.Succeeded()))
+		// log.Println("Res:", res.Failed(), res.Created())
+	}
+	// success = uint64(bulk.Stats().Committed)
 	return
 }
