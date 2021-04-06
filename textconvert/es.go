@@ -70,6 +70,7 @@ func NewEsCli(name, pwd string, address ...string) (es *EsClient, err error) {
 	es.client, err = elastic.NewClient(
 		elastic.SetURL(address...),
 		elastic.SetSniff(false),
+		elastic.SetBasicAuth(name, pwd),
 		// elastic.SetRetrier(elastic.NewRetr()),
 		elastic.SetGzip(true),
 		elastic.SetHealthcheckInterval(10*time.Second),
@@ -140,7 +141,7 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 		bulk = bulk.Add(req)
 		num := bulk.EstimatedSizeInBytes()
 
-		if float64(num)/float64(1024)/float64(1024) > 10 {
+		if float64(num)/float64(1024)/float64(1024) > 100 {
 			log.Println("Batch Size: ", float64(num)/float64(1024)/float64(1024), "MB")
 
 			bulk.Do(context.Background())
