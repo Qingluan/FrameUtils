@@ -3,6 +3,7 @@ package textconvert
 import (
 	"bufio"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -41,17 +42,28 @@ func NormalToEs(path string) (es ElasticFileDocs, err error) {
 		return es, err
 	}
 	defer fp.Close()
-	reader := bufio.NewReader(fp)
-	for {
-		l, err := reader.ReadString(byte('\n'))
-		if err == io.EOF {
-			break
+	info, _ := fp.Stat()
+	if info.Size() > 1024*1024*10 {
+		reader := bufio.NewReader(fp)
+		msg := ""
+		for {
+			l, err := reader.ReadString(byte('\n'))
+			if err == io.EOF || err != nil {
+				break
+			}
+			msg += l + "\n"
 		}
-		msg, err := TOUTF8(l)
-		es.SomeStr += msg + "\n"
 
+		es.SomeStr, err = TOUTF8(msg)
+		es.Path = path
+
+	} else {
+		buf, err := ioutil.ReadAll(fp)
+		if err != nil {
+			return es, err
+		}
+		es.SomeStr, err = TOUTF8(string(buf))
 	}
-	es.Path = path
 	// if buf, err := ioutil.ReadFile(path); err != nil {
 	// 	return es, err
 	// } else {
