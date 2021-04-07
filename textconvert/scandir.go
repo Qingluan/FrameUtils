@@ -63,18 +63,17 @@ func (scan *ScanTask) Scan() {
 		for {
 			path := <-ch
 			if fu, ok := scan.FileHandle[scan.GetType(path)]; ok {
-				if all%100 == 0 {
+				if all%10 == 0 {
 					// runtime.ReadMemStats(&mem)
-
-					fmt.Printf("got :%d : %s                                      \r", all, filepath.Base(path))
+					fmt.Printf("got :%d : %d  \r", all, runningNum)
 					// fmt.Println(mem)
 				}
 				runningNum++
 				all++
 				waiter.Add(1)
-				go func(p string, okch chan Res) {
-					defer waiter.Done()
-					if out, err := fu(p); err != nil {
+				go func(p string, okch chan Res, function func(name string) (ElasticFileDocs, error), w *sync.WaitGroup) {
+					defer w.Done()
+					if out, err := function(p); err != nil {
 						log.Println(path, ":", err)
 					} else {
 						okch <- Res{
@@ -83,7 +82,7 @@ func (scan *ScanTask) Scan() {
 						}
 					}
 
-				}(path, okch)
+				}(path, okch, fu, &waiter)
 			}
 			if runningNum >= scan.Num {
 				waiter.Wait()
