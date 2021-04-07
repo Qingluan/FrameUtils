@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
@@ -43,7 +44,8 @@ func NormalToEs(path string) (es ElasticFileDocs, err error) {
 	}
 	defer fp.Close()
 	info, _ := fp.Stat()
-	if info.Size() > 1024*1024*10 {
+	if info.Size() > 1024*1024*50 {
+		log.Println(path, float64(info.Size())/float64(1024)/float64(1024), "MB")
 		reader := bufio.NewReader(fp)
 		msg := ""
 		for {

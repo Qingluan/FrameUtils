@@ -16,7 +16,7 @@ func main() {
 	scan.SetHandle("txt", textconvert.NormalToEs)
 	scan.SetHandle("csv", textconvert.NormalToEs)
 
-	es, err := textconvert.NewEsCli("", "", os.Args[2])
+	es, err := textconvert.NewEsCli("elastic", "wjzd1414..", "http://localhost:9200")
 	if err != nil {
 		log.Println(err)
 	}
@@ -24,7 +24,7 @@ func main() {
 	scan.SetOkHandle(func(res textconvert.Res) {
 		// fmt.Println(utils.Yellow(res.Path), utils.Green(len(res.Res.SomeStr)))
 		// fmt.Println(res.Res.SomeStr)
-		es.BatchingThenImport("test1", res.Res, 100)
+		es.BatchingThenImport("test1", res.Res, 400)
 	})
 	scan.Scan()
 	es.Wait("test1")
