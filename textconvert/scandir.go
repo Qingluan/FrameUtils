@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -30,7 +31,7 @@ func NewDirScan(dir string, num int) (scan *ScanTask) {
 	scan.Num = num
 	scan.dir = dir
 	scan.OkChannel = make(chan Res, 2048)
-	scan.WaitChannel = make(chan string, 100)
+	scan.WaitChannel = make(chan string, 10)
 	scan.FileHandle = make(map[string]func(name string) (ElasticFileDocs, error))
 	return
 }
@@ -52,17 +53,21 @@ func (scan *ScanTask) SetOkHandle(h func(r Res)) {
 }
 
 func (scan *ScanTask) Scan() {
-
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	var waiter sync.WaitGroup
+	stopChan := make(chan int)
+	// var mem runtime.MemStats
 	go func(ch chan string, okch chan Res) {
 		runningNum := 0
-		var waiter sync.WaitGroup
 		all := 0
 		for {
 			path := <-ch
 			if fu, ok := scan.FileHandle[scan.GetType(path)]; ok {
 				if all%100 == 0 {
-					fmt.Printf("got :%d : %s                                      \r", all, filepath.Base(path))
+					// runtime.ReadMemStats(&mem)
 
+					fmt.Printf("got :%d : %s                                      \r", all, filepath.Base(path))
+					// fmt.Println(mem)
 				}
 				runningNum++
 				all++
@@ -89,11 +94,20 @@ func (scan *ScanTask) Scan() {
 	}(scan.WaitChannel, scan.OkChannel)
 
 	go func(ochan chan Res, handle func(res Res)) {
+		tick := time.Tick(3 * time.Second)
 		for {
-			res := <-ochan
-			if handle != nil {
-				handle(res)
+			select {
+			case <-tick:
+				// time.Sleep()
+			case res := <-ochan:
+
+				if handle != nil {
+					handle(res)
+				}
+			case <-stopChan:
+				break
 			}
+			// res := <-ochan
 		}
 	}(scan.OkChannel, scan.okHandle)
 	filepath.Walk(scan.dir, func(f string, fs os.FileInfo, err error) error {
@@ -110,5 +124,6 @@ func (scan *ScanTask) Scan() {
 			break
 		}
 	}
+	stopChan <- 1
 
 }

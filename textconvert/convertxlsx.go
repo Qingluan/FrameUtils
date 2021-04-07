@@ -1,10 +1,6 @@
 package textconvert
 
 import (
-	"bufio"
-	"io"
-	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/thedatashed/xlsxreader"
@@ -33,42 +29,4 @@ func XlsxToEs(path string) (es ElasticFileDocs, err error) {
 	es.Path = path
 	return
 
-}
-
-func NormalToEs(path string) (es ElasticFileDocs, err error) {
-
-	fp, err := os.Open(path)
-	if err != nil {
-		return es, err
-	}
-	defer fp.Close()
-	info, _ := fp.Stat()
-	if info.Size() > 1024*1024*10 {
-		reader := bufio.NewReader(fp)
-		msg := ""
-		for {
-			l, err := reader.ReadString(byte('\n'))
-			if err == io.EOF || err != nil {
-				break
-			}
-			msg += l + "\n"
-		}
-
-		es.SomeStr, err = TOUTF8(msg)
-		es.Path = path
-
-	} else {
-		buf, err := ioutil.ReadAll(fp)
-		if err != nil {
-			return es, err
-		}
-		es.SomeStr, err = TOUTF8(string(buf))
-	}
-	// if buf, err := ioutil.ReadFile(path); err != nil {
-	// 	return es, err
-	// } else {
-	// 	es.SomeStr, err = TOUTF8(string(buf))
-	// 	es.Path = path
-	// }
-	return
 }
