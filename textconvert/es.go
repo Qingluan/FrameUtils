@@ -92,7 +92,15 @@ func NewEsCli(name, pwd string, address ...string) (es *EsClient, err error) {
 }
 
 func (es *EsClient) BatchingThenImport(index string, doc ElasticFileDocs, num int) (success, failed uint64) {
-	es.TmpCache = append(es.TmpCache, doc)
+	if doc.MbSize() > 60 {
+		docs := doc.SplitEsDoc(60)
+
+		es.TmpCache = append(es.TmpCache, docs...)
+
+	} else {
+		es.TmpCache = append(es.TmpCache, doc)
+
+	}
 	if len(es.TmpCache) > num {
 		success, failed = es.BatchImport(index, es.TmpCache...)
 		es.TmpCache = []ElasticFileDocs{}
@@ -114,7 +122,7 @@ func (es *EsClient) Wait(index string) (success, failed uint64) {
 
 func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (success, failed uint64) {
 	start := time.Now()
-	defer log.Println(utils.BGreen(fmt.Sprintf("Used %s All: %d Success : %d ", time.Now().Sub(start), len(esobjs), success)) + utils.BRed(fmt.Sprintf("| Failed : %d ", failed)))
+	defer log.Println(utils.BGreen(fmt.Sprintf("[%s] Used %s All: %d Success : %d ", time.Now(), time.Since(start), len(esobjs), success)) + utils.BRed(fmt.Sprintf("| Failed : %d ", failed)))
 	// indexer, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 	// 	Index:         index,            // The default index name
 	// 	Client:        es.client,        // The Elasticsearch client
@@ -123,7 +131,7 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 	// 	FlushInterval: 10 * time.Second, // The periodic flush interval
 	// })
 	// bulkReq := es.client.Bulk()
-	bulk := es.client.Bulk()
+
 	// Setup a bulk processor
 	// bulk, err := es.client.BulkProcessor().Name("MyBackgroundWorker-1").
 	// 	Workers(runtime.NumCPU()).
@@ -135,17 +143,42 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 
 	// }
 	now, _ := es.client.Count(index).Do(context.Background())
-
+	bs := make(chan *elastic.BulkService, 5)
+	okbs := make(chan *elastic.BulkService, 5)
+	bs <- es.client.Bulk()
+	bs <- es.client.Bulk()
+	bs <- es.client.Bulk()
+	bs <- es.client.Bulk()
+	bs <- es.client.Bulk()
+	batchSizeImport := func(ok, wait chan *elastic.BulkService, n int64) {
+		b := <-ok
+		thisPoint := time.Now()
+		res, err := b.Do(context.Background())
+		if err != nil {
+			log.Println(fmt.Sprintf("[%s] Used %s size: %.3fMB", time.Now(), utils.Red(err), float64(n)/float64(1024)/float64(1024)))
+		} else {
+			log.Println(fmt.Sprintf("[%s] Used %s Success : %s fail: %s | size: %.3f MB", time.Now(), time.Since(thisPoint), utils.BGreen(len(res.Succeeded())), utils.BRed(len(res.Failed())), float64(n)/float64(1024)/float64(1024)))
+		}
+		wait <- es.client.Bulk()
+	}
 	for i, a := range esobjs {
 		req := elastic.NewBulkIndexRequest().Index(index).Id(fmt.Sprintf("%d", now+int64(i))).Type("es-file").Doc(a)
+		bulk := <-bs
 		bulk = bulk.Add(req)
 		num := bulk.EstimatedSizeInBytes()
-
-		if float64(num)/float64(1024)/float64(1024) > 200 {
-			thisPoint := time.Now()
-			res, _ := bulk.Do(context.Background())
-			log.Println(utils.BGreen(fmt.Sprintf("[%s] Used %s Success : %d fail: %d | size: %.3f MB", time.Now(), time.Now().Sub(thisPoint), len(res.Succeeded()), len(res.Failed()), float64(num)/float64(1024)/float64(1024))))
-			bulk = es.client.Bulk()
+		if float64(num)/float64(1024)/float64(1024) > 40 {
+			okbs <- bulk
+			go batchSizeImport(okbs, bs, num)
+			// thisPoint := time.Now()
+			// res, err := bulk.Do(context.Background())
+			// if err != nil {
+			// 	log.Println(fmt.Sprintf("[%s] Used %s size: %.3fMB", time.Now(), utils.Red(err), float64(num)/float64(1024)/float64(1024)))
+			// } else {
+			// 	log.Println(fmt.Sprintf("[%s] Used %s Success : %s fail: %s | size: %.3f MB", time.Now(), time.Since(thisPoint), utils.BGreen(len(res.Succeeded())), utils.BRed(len(res.Failed())), float64(num)/float64(1024)/float64(1024)))
+			// }
+			// bulk = es.client.Bulk()
+		} else {
+			bs <- bulk
 		}
 		// bulk.Add(req)
 		// data, err := json.Marshal(a)
@@ -179,14 +212,21 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 
 	// log.Println(utils.Yellow(bulkReq.NumberOfActions()))
 	// time.Sleep(5 * time.Second)
-
-	if res, err := bulk.Do(context.Background()); err != nil {
-		failed = uint64(len(esobjs))
-		log.Println("err:", err)
-	} else {
-		success = uint64(len(res.Succeeded()))
-		// log.Println("Res:", res.Failed(), res.Created())
+	for {
+		if len(bs) > 0 {
+			bulk := <-bs
+			if res, err := bulk.Do(context.Background()); err != nil {
+				failed += uint64(len(esobjs))
+				log.Println("err:", err)
+			} else {
+				success += uint64(len(res.Succeeded()))
+				// log.Println("Res:", res.Failed(), res.Created())
+			}
+		} else {
+			break
+		}
 	}
+
 	// success = uint64(bulk.Stats().Committed)
 	return
 }

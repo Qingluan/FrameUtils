@@ -65,9 +65,9 @@ func (scan *ScanTask) Scan() {
 		for {
 			path := <-ch
 			if fu, ok := scan.FileHandle[scan.GetType(path)]; ok {
-				if all%200 == 0 {
+				if all%1000 == 0 {
 					// runtime.ReadMemStats(&mem)
-					fmt.Printf("got :%d : %d  \n", all, runningNum)
+					fmt.Printf("got :%d   \n", all)
 					// fmt.Println(mem)
 				}
 				runningNum++
