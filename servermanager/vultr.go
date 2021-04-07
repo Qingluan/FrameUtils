@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	jupyter "github.com/Qingluan/jupyter/http"
@@ -29,7 +30,7 @@ type Vultr struct {
 }
 
 func (vps Vps) String() string {
-	return fmt.Sprintf("%s(%s)", vps.IP, vps.Region)
+	return fmt.Sprintf("%s(Loc:%s Tag:%s)", vps.IP, vps.Region, vps.TAG)
 }
 func (vps Vps) Connect() (client *ssh.Client, sess *ssh.Session, err error) {
 	sshConfig := &ssh.ClientConfig{
@@ -37,7 +38,11 @@ func (vps Vps) Connect() (client *ssh.Client, sess *ssh.Session, err error) {
 		Auth: []ssh.AuthMethod{ssh.Password(vps.PWD)},
 	}
 	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-	client, err = ssh.Dial("tcp", vps.IP, sshConfig)
+	ip := vps.IP
+	if !strings.Contains(ip, ":") {
+		ip += ":22"
+	}
+	client, err = ssh.Dial("tcp", ip, sshConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -49,8 +54,21 @@ func (vps Vps) Connect() (client *ssh.Client, sess *ssh.Session, err error) {
 	return client, session, nil
 }
 
+func (vps Vps) Rm(file string) bool {
+	if _, sess, err := vps.Connect(); err != nil {
+		return false
+	} else {
+		if err := sess.Run("rm " + filepath.Join("/tmp", file)); err != nil {
+			return false
+		} else {
+			return true
+		}
+	}
+}
+
 func (vps Vps) Upload(file string, canexcute bool) bool {
 	if cli, _, err := vps.Connect(); err != nil {
+		log.Fatal(err)
 		return false
 	} else {
 		if sftpChannel, err := sftp.NewClient(cli); err != nil {
@@ -82,6 +100,9 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 					log.Println("Already upload !")
 					return true
 				}
+				if startAt != 0 {
+					log.Println("Continued at:", float64(startAt)/float64(1024)/float64(1024), "MB")
+				}
 			}
 			localFp, err := os.OpenFile(file, os.O_RDONLY, os.ModePerm)
 			if err != nil {
@@ -103,9 +124,9 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 			// Start a goroutine printing progress
 			go func() {
 				ctx := context.Background()
-				progressChan := progress.NewTicker(ctx, r, size, 10*time.Second)
+				progressChan := progress.NewTicker(ctx, r, size, 5*time.Second)
 				for p := range progressChan {
-					fmt.Printf("\r%s %v remaining...", fileName, p.Remaining().Round(time.Second))
+					fmt.Printf("\r[%.3f%%] %.3f MB %s %v remaining...", p.Percent(), float64(p.Size())/float64(1024)/float64(1024), fileName, p.Remaining().Round(time.Second))
 				}
 				fmt.Println("\rdownload is completed")
 			}()
@@ -123,6 +144,7 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 func NewVultr(api string) (v *Vultr) {
 	v = new(Vultr)
 	v.Servers = make(map[string]Vps)
+	v.API = api
 	return
 }
 
@@ -139,7 +161,7 @@ func (v *Vultr) Update() (err error) {
 		return fmt.Errorf("%v", "Need api key!!: ")
 	}
 	sess := jupyter.NewSession()
-	sess.SetHeader("API-Key", v.API)
+	sess.SetHeader("API-Key", strings.TrimSpace(v.API))
 	if res, err := sess.Get("https://api.vultr.com/v1/server/list"); err != nil {
 		return err
 	} else {

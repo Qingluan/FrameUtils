@@ -34,17 +34,35 @@ func main() {
 	}
 
 	if PassFile != "" {
-		fmt.Print("Enter Password: ")
-		bytePassword := tui.GetPass("API")
-		if err != nil {
-			log.Fatal(utils.Red(err))
-		}
-		manager := servermanager.NewVultr(bytePassword)
-		if manager.Update() {
-			if oneVps, ok := tui.SelectOne("select one:", manager.GetServers()); ok {
-				oneVps.Upload(PassFile)
+		bytePassword := tui.GetPass("API/ ssh auth( ip=xxxx , pass= xxxx)")
+		if strings.Contains(bytePassword, "=") {
+			kargs := utils.BDict{}
+			kargs = kargs.FromCmd(bytePassword)
+			if ip, ok := kargs["ip"]; ok {
+				if passwd, ok := kargs["pass"]; ok {
+					vps := servermanager.Vps{
+						IP:   ip,
+						PWD:  passwd,
+						USER: "root",
+					}
+					vps.Upload(PassFile, true)
+				}
+			}
+		} else {
+			manager := servermanager.NewVultr(bytePassword)
+			if err := manager.Update(); err == nil {
+				ee := []tui.CanString{}
+				for _, w := range manager.GetServers() {
+					ee = append(ee, w)
+				}
+				if oneVps, ok := tui.SelectOne("select one:", ee); ok {
+					oneVps.(servermanager.Vps).Upload(PassFile, true)
+				}
+			} else {
+				log.Fatal(utils.Red(err))
 			}
 		}
+
 		return
 
 	}

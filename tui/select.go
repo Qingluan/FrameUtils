@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -31,7 +32,7 @@ func SelectOne(label string, selects []CanString) (CanString, bool) {
 
 func GetPass(label string) string {
 	fmt.Printf("%s:", label)
-	var input []byte = make([]byte, 100)
-	os.Stdin.Read(input)
-	return strings.TrimSpace(fmt.Sprintf("%s", input))
+	buffer := bufio.NewReader(os.Stdin)
+	line, _, _ := buffer.ReadLine()
+	return strings.TrimSpace(string(line))
 }
