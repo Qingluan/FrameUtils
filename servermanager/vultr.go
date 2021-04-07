@@ -1,19 +1,26 @@
 package servermanager
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
+	"github.com/Qingluan/merkur"
 	"github.com/machinebox/progress"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Vps struct {
@@ -22,6 +29,7 @@ type Vps struct {
 	PWD    string
 	TAG    string
 	Region string
+	Proxy  string
 }
 
 type Vultr struct {
@@ -42,7 +50,24 @@ func (vps Vps) Connect() (client *ssh.Client, sess *ssh.Session, err error) {
 	if !strings.Contains(ip, ":") {
 		ip += ":22"
 	}
-	client, err = ssh.Dial("tcp", ip, sshConfig)
+	if vps.Proxy != "" {
+		if dialer := merkur.NewProxyDialer(vps.Proxy); dialer != nil {
+			if conn, err := dialer.Dial("tcp", ip); err == nil {
+				conn, chans, reqs, err := ssh.NewClientConn(conn, ip, sshConfig)
+				if err != nil {
+					return nil, nil, err
+				}
+				log.Println(utils.Green("Use Proxy:", vps.Proxy))
+				client = ssh.NewClient(conn, chans, reqs)
+			} else {
+				return nil, nil, err
+			}
+		} else {
+			return nil, nil, fmt.Errorf("%v", "no proxy dialer create ok!")
+		}
+	} else {
+		client, err = ssh.Dial("tcp", ip, sshConfig)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -66,6 +91,144 @@ func (vps Vps) Rm(file string) bool {
 	}
 }
 
+func (vps Vps) Shell() bool {
+	if conn, session, err := vps.Connect(); err != nil {
+		log.Fatal(err)
+		return false
+	} else {
+		if runtime.GOOS != "windows" {
+			sig := make(chan os.Signal, 1)
+			signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+			ctx, cancel := context.WithCancel(context.Background())
+
+			// session, err := conn.NewSession()
+			// if err != nil {
+			// 	return fmt.Errorf("cannot open new session: %v", err)
+			// }
+
+			run := func(ctx context.Context, conn *ssh.Client, session *ssh.Session) error {
+				defer session.Close()
+
+				go func() {
+					<-ctx.Done()
+					conn.Close()
+				}()
+
+				// fd := int(os.Stdin.Fd())
+				fd := int(os.Stdout.Fd())
+
+				state, err := terminal.MakeRaw(fd)
+				if err != nil {
+					return fmt.Errorf("terminal make raw: %s", err)
+				}
+				defer terminal.Restore(fd, state)
+
+				w, h, err := terminal.GetSize(fd)
+				if err != nil {
+					return fmt.Errorf("terminal get size: %s", err)
+				}
+
+				modes := ssh.TerminalModes{
+					ssh.ECHO:          1,
+					ssh.TTY_OP_ISPEED: 14400,
+					ssh.TTY_OP_OSPEED: 14400,
+				}
+
+				term := os.Getenv("TERM")
+				if term == "" {
+					term = "xterm-256color"
+				}
+				if err := session.RequestPty(term, h, w, modes); err != nil {
+					return fmt.Errorf("session xterm: %s", err)
+				}
+
+				session.Stdout = os.Stdout
+				session.Stderr = os.Stderr
+				session.Stdin = os.Stdin
+
+				if err := session.Shell(); err != nil {
+					return fmt.Errorf("session shell: %s", err)
+				}
+
+				if err := session.Wait(); err != nil {
+					if e, ok := err.(*ssh.ExitError); ok {
+						switch e.ExitStatus() {
+						case 130:
+							return nil
+						}
+					}
+					return fmt.Errorf("ssh: %s", err)
+				}
+				return nil
+			}
+
+			go func() {
+				if err := run(ctx, conn, session); err != nil {
+					log.Print(err)
+				}
+				cancel()
+			}()
+
+			select {
+			case <-sig:
+				cancel()
+			case <-ctx.Done():
+			}
+
+		} else {
+			// session.Stdout = os.Stdout
+			defer session.Close()
+
+			// StdinPipe for commands
+			stdin, err := session.StdinPipe()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// Uncomment to store output in variable
+			//var b bytes.Buffer
+			//session.Stdout = &b
+			//session.Stderr = &b
+
+			// Enable system stdout
+			// Comment these if you uncomment to store in variable
+			session.Stdout = os.Stdout
+			session.Stderr = os.Stderr
+
+			// Start remote shell
+			err = session.Shell()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// send the commands
+			buffer := bufio.NewReader(os.Stdin)
+			for {
+				// nowCwd := fmt
+				time.Sleep(1 * time.Second)
+				fmt.Printf("%s >", utils.Green(vps))
+				line, _, _ := buffer.ReadLine()
+
+				_, err = fmt.Fprintf(stdin, "%s\n", line)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			// Wait for session to finish
+			// err = session.Wait()
+			// if err != nil {
+			// 	log.Fatal(err)
+			// }
+
+			// Uncomment to store in variable
+			//fmt.Println(b.String())
+
+		}
+		return true
+	}
+}
+
 func (vps Vps) Upload(file string, canexcute bool) bool {
 	if cli, _, err := vps.Connect(); err != nil {
 		log.Fatal(err)
@@ -78,6 +241,7 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 
 		} else {
 			fileName := filepath.Base(file)
+			sftpChannel.Remove(filepath.Join("/tmp", fileName))
 			fp, err := sftpChannel.OpenFile(filepath.Join("/tmp", fileName), os.O_APPEND|os.O_CREATE|os.O_RDWR)
 
 			if err != nil {
@@ -139,6 +303,33 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 
 	}
 	return false
+}
+
+func (vps Vps) Deploy(file []string, run string) string {
+	// var wait sync.WaitGroup
+	for _, f := range file {
+		// for i, f := range file {
+		// wait.Add(1)
+		// go func() {
+		// defer wait.Done()
+		vps.Upload(f, true)
+		// }()
+
+		// if i%3 == 0 && i != 0 {
+		// wait.Wait()
+		// wait = sync.WaitGroup{}
+		// }
+	}
+	// wait.Wait()
+	if _, sess, err := vps.Connect(); err != nil {
+		return err.Error()
+	} else {
+		if out, err := sess.Output(run); err != nil {
+			return err.Error()
+		} else {
+			return string(out)
+		}
+	}
 }
 
 func NewVultr(api string) (v *Vultr) {

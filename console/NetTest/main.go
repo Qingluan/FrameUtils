@@ -15,10 +15,14 @@ import (
 )
 
 var (
-	target   = "localhost"
-	tp       = "json"
-	seemyip  = false
-	PassFile = ""
+	target    = "localhost"
+	tp        = "json"
+	seemyip   = false
+	PassFile  = ""
+	deploy    = ""
+	deployRun = ""
+	proxy     = ""
+	ssh       = false
 )
 
 func main() {
@@ -27,10 +31,93 @@ func main() {
 	flag.StringVar(&tp, "t", "json", "set target")
 	flag.BoolVar(&seemyip, "ip", false, "see my ip")
 	flag.StringVar(&PassFile, "pass", "", "set pass file")
+	flag.StringVar(&deploy, "D", "", "set deploy file path.")
+	flag.StringVar(&proxy, "proxy", "", "set proxy.")
+	flag.StringVar(&deployRun, "Dcmd", "", "set deploy upload then run shell.")
+	flag.BoolVar(&ssh, "ssh", false, "true to ssh shell.")
+
 	flag.Parse()
+
 	if seemyip {
 		fmt.Printf("my ip: %s =v=\n", utils.Green(utils.GetLocalIP()))
 		return
+	}
+	if ssh {
+		bytePassword := tui.GetPass("API/ ssh auth( ip=xxxx , pass= xxxx)")
+		// args := flag.Args()
+		// files := append([]string{deploy}, args...)
+		if strings.Contains(bytePassword, "=") {
+			kargs := utils.BDict{}
+			kargs = kargs.FromCmd(bytePassword)
+			if ip, ok := kargs["ip"]; ok {
+				if passwd, ok := kargs["pass"]; ok {
+					vps := servermanager.Vps{
+						IP:    ip,
+						PWD:   passwd,
+						USER:  "root",
+						Proxy: proxy,
+					}
+					// vps.Upload(PassFile, true)
+					fmt.Println(vps.Shell())
+				}
+			}
+		} else {
+			manager := servermanager.NewVultr(bytePassword)
+			if err := manager.Update(); err == nil {
+				ee := []tui.CanString{}
+				for _, w := range manager.GetServers() {
+					ee = append(ee, w)
+				}
+				if oneVps, ok := tui.SelectOne("select one:", ee); ok {
+					vps := oneVps.(servermanager.Vps)
+					vps.Proxy = proxy
+					fmt.Println(vps.Shell())
+				}
+			} else {
+				log.Fatal(utils.Red(err))
+			}
+		}
+
+		return
+	}
+	if deploy != "" {
+		bytePassword := tui.GetPass("API/ ssh auth( ip=xxxx , pass= xxxx)")
+		args := flag.Args()
+		files := append([]string{deploy}, args...)
+		if strings.Contains(bytePassword, "=") {
+			kargs := utils.BDict{}
+			kargs = kargs.FromCmd(bytePassword)
+			if ip, ok := kargs["ip"]; ok {
+				if passwd, ok := kargs["pass"]; ok {
+					vps := servermanager.Vps{
+						IP:    ip,
+						PWD:   passwd,
+						USER:  "root",
+						Proxy: proxy,
+					}
+					// vps.Upload(PassFile, true)
+					fmt.Println(vps.Deploy(files, deployRun))
+				}
+			}
+		} else {
+			manager := servermanager.NewVultr(bytePassword)
+			if err := manager.Update(); err == nil {
+				ee := []tui.CanString{}
+				for _, w := range manager.GetServers() {
+					ee = append(ee, w)
+				}
+				if oneVps, ok := tui.SelectOne("select one:", ee); ok {
+					vps := oneVps.(servermanager.Vps)
+					vps.Proxy = proxy
+					fmt.Println(vps.Deploy(files, deployRun))
+				}
+			} else {
+				log.Fatal(utils.Red(err))
+			}
+		}
+
+		return
+
 	}
 
 	if PassFile != "" {
