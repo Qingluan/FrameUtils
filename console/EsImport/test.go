@@ -38,7 +38,7 @@ func main() {
 	scan.SetOkHandle(func(res textconvert.Res) {
 		// fmt.Println(utils.Yellow(res.Path), utils.Green(len(res.Res.SomeStr)))
 		// fmt.Println(res.Res.SomeStr)
-		es.BatchingThenImport("test1", res.Res, 100)
+		es.BatchingThenImport("test1", res.Res, 1000)
 	})
 	scan.Scan()
 	es.Wait("test1")
