@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -229,31 +230,31 @@ func (vps Vps) Shell() bool {
 	}
 }
 
-func (vps Vps) Upload(file string, canexcute bool) bool {
+func (vps Vps) Upload(file string, canexcute bool) error {
 	if cli, _, err := vps.Connect(); err != nil {
 		log.Fatal(err)
-		return false
+		return err
 	} else {
 		if sftpChannel, err := sftp.NewClient(cli); err != nil {
 
 			log.Println(err)
-			return false
+			return err
 
 		} else {
 			fileName := filepath.Base(file)
-			sftpChannel.Remove(filepath.Join("/tmp", fileName))
-			fp, err := sftpChannel.OpenFile(filepath.Join("/tmp", fileName), os.O_APPEND|os.O_CREATE|os.O_RDWR)
+			sftpChannel.Remove("/tmp/" + fileName)
+			fp, err := sftpChannel.OpenFile("/tmp/"+fileName, os.O_APPEND|os.O_CREATE|os.O_RDWR)
 
 			if err != nil {
 
 				log.Println(err)
-				return false
+				return err
 			}
 			localState, err := os.Stat(file)
 			if err != nil {
 
 				log.Println(err)
-				return false
+				return err
 			}
 
 			startAt := int64(0)
@@ -262,7 +263,7 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 				startAt = state.Size()
 				if startAt == localState.Size() {
 					log.Println("Already upload !")
-					return true
+					return nil
 				}
 				if startAt != 0 {
 					log.Println("Continued at:", float64(startAt)/float64(1024)/float64(1024), "MB")
@@ -271,13 +272,13 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 			localFp, err := os.OpenFile(file, os.O_RDONLY, os.ModePerm)
 			if err != nil {
 				log.Println(err)
-				return false
+				return err
 			}
 			defer localFp.Close()
 			_, err = localFp.Seek(startAt, os.SEEK_SET)
 			if err != nil {
 				log.Println(err)
-				return false
+				return err
 			}
 			// ctx := context.Background()
 
@@ -302,25 +303,29 @@ func (vps Vps) Upload(file string, canexcute bool) bool {
 		}
 
 	}
-	return false
+	return nil
 }
 
 func (vps Vps) Deploy(file []string, run string) string {
-	// var wait sync.WaitGroup
-	for _, f := range file {
-		// for i, f := range file {
-		// wait.Add(1)
-		// go func() {
-		// defer wait.Done()
-		vps.Upload(f, true)
-		// }()
+	var wait sync.WaitGroup
+	// for _, f := range file {
+	for i, f := range file {
+		wait.Add(1)
+		go func(w *sync.WaitGroup, fp string) {
+			if err := vps.Upload(fp, true); err != nil {
+				log.Println(err)
+			}
+			w.Done()
 
-		// if i%3 == 0 && i != 0 {
-		// wait.Wait()
-		// wait = sync.WaitGroup{}
-		// }
+		}(&wait, f)
+
+		if i%3 == 0 && i != 0 {
+			wait.Wait()
+			wait = sync.WaitGroup{}
+		}
 	}
-	// wait.Wait()
+	time.Sleep(1 * time.Second)
+	wait.Wait()
 	if _, sess, err := vps.Connect(); err != nil {
 		return err.Error()
 	} else {

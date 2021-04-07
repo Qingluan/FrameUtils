@@ -108,6 +108,7 @@ func main() {
 				}
 				if oneVps, ok := tui.SelectOne("select one:", ee); ok {
 					vps := oneVps.(servermanager.Vps)
+					fmt.Println(vps, "|", vps.PWD)
 					vps.Proxy = proxy
 					fmt.Println(vps.Deploy(files, deployRun))
 				}
@@ -143,6 +144,8 @@ func main() {
 					ee = append(ee, w)
 				}
 				if oneVps, ok := tui.SelectOne("select one:", ee); ok {
+					// fmt.Println(, "|", vps.PWD)
+
 					oneVps.(servermanager.Vps).Upload(PassFile, true)
 				}
 			} else {
