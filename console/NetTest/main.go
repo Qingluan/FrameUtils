@@ -7,15 +7,18 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Qingluan/FrameUtils/servermanager"
+	"github.com/Qingluan/FrameUtils/tui"
 	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
 	"github.com/fatih/color"
 )
 
 var (
-	target  = "localhost"
-	tp      = "json"
-	seemyip = false
+	target   = "localhost"
+	tp       = "json"
+	seemyip  = false
+	PassFile = ""
 )
 
 func main() {
@@ -23,11 +26,29 @@ func main() {
 
 	flag.StringVar(&tp, "t", "json", "set target")
 	flag.BoolVar(&seemyip, "ip", false, "see my ip")
+	flag.StringVar(&PassFile, "pass", "", "set pass file")
 	flag.Parse()
 	if seemyip {
 		fmt.Printf("my ip: %s =v=\n", utils.Green(utils.GetLocalIP()))
 		return
 	}
+
+	if PassFile != "" {
+		fmt.Print("Enter Password: ")
+		bytePassword := tui.GetPass("API")
+		if err != nil {
+			log.Fatal(utils.Red(err))
+		}
+		manager := servermanager.NewVultr(bytePassword)
+		if manager.Update() {
+			if oneVps, ok := tui.SelectOne("select one:", manager.GetServers()); ok {
+				oneVps.Upload(PassFile)
+			}
+		}
+		return
+
+	}
+
 	output := func(res *jupyter.SmartResponse, err error) {
 		if err != nil {
 			log.Fatal(color.New(color.FgRed).Sprint(err))
