@@ -141,10 +141,10 @@ func (es *EsClient) BatchImport(index string, esobjs ...ElasticFileDocs) (succes
 		bulk = bulk.Add(req)
 		num := bulk.EstimatedSizeInBytes()
 
-		if float64(num)/float64(1024)/float64(1024) > 100 {
-			log.Println("Batch Size: ", float64(num)/float64(1024)/float64(1024), "MB")
-
-			bulk.Do(context.Background())
+		if float64(num)/float64(1024)/float64(1024) > 200 {
+			thisPoint := time.Now()
+			res, _ := bulk.Do(context.Background())
+			log.Println(utils.BGreen(fmt.Sprintf("[%s] Used %s Success : %d fail: %d | size: %.3f MB", time.Now(), time.Now().Sub(thisPoint), len(res.Succeeded()), len(res.Failed()), float64(num)/float64(1024)/float64(1024))))
 			bulk = es.client.Bulk()
 		}
 		// bulk.Add(req)
