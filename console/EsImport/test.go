@@ -30,7 +30,7 @@ func main() {
 	// scan.SetHandle("doc", textconvert.DocxToEs)
 	scan.SetHandle("docx", textconvert.DocxToEs)
 	scan.SetHandle("xlsx", textconvert.XlsxToEs)
-	// scan.SetHandle("pdf", textconvert.PdfToEs)
+	scan.SetHandle("pdf", textconvert.PdfToEs)
 	scan.SetHandle("txt", textconvert.NormalToEs)
 	scan.SetHandle("csv", textconvert.NormalToEs)
 

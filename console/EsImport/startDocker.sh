@@ -11,7 +11,7 @@ sudo docker run -d \
 fi
 
 [[ $1 == "es" ]] &&
-sudo docker run --name es -p 9200:9200 -p 9300:9300  -e "discovery.type=single-node" -e ES_JAVA_OPTS="-Xms320m -Xmx640m" -d elasticsearch
+sudo docker run --name es -p 9200:9200 -p 9300:9300  -e "discovery.type=single-node" -e ES_JAVA_OPTS="-Xms2g -Xmx3g" -d elasticsearch
 
 
 [[ $1 == "rm" ]] &&

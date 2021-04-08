@@ -412,4 +412,5 @@ const (
 	{
 		background-color: #0f3c4b;
 	}`
+	// PRE = `<html><head>`
 )

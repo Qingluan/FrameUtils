@@ -2,15 +2,16 @@ package LocalDB
 
 import (
 	"fmt"
-	"github.com/Qingluan/FrameUtils/engine"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
-func (db *DBHandler) Query(filter engine.Dict, batchLeng ...int) chan []engine.Dict {
-	fs := make(chan []engine.Dict)
+func (db *DBHandler) Query(filter utils.Dict, batchLeng ...int) chan []utils.Dict {
+	fs := make(chan []utils.Dict)
 	batchLen := 1000
 	if batchLeng != nil {
 		batchLen = batchLeng[0]
@@ -37,7 +38,7 @@ func (db *DBHandler) Query(filter engine.Dict, batchLeng ...int) chan []engine.D
 			if index == nil {
 				return
 			}
-			onebatch := []engine.Dict{}
+			onebatch := []utils.Dict{}
 			for _, b := range index.Include {
 				if d, err := db.getByBias(b); err != nil {
 					log.Fatal("broken db !!", err, b)
@@ -46,7 +47,7 @@ func (db *DBHandler) Query(filter engine.Dict, batchLeng ...int) chan []engine.D
 					onebatch = append(onebatch, d)
 					if len(onebatch) >= batchLen {
 						fs <- onebatch
-						onebatch = []engine.Dict{}
+						onebatch = []utils.Dict{}
 
 					}
 				}
@@ -56,7 +57,7 @@ func (db *DBHandler) Query(filter engine.Dict, batchLeng ...int) chan []engine.D
 				fs <- onebatch
 			}
 		} else {
-			onebatch := []engine.Dict{}
+			onebatch := []utils.Dict{}
 
 			for _, b := range db.Header.ItemsBias {
 				if d, err := db.getByBias(b); err != nil {
@@ -65,7 +66,7 @@ func (db *DBHandler) Query(filter engine.Dict, batchLeng ...int) chan []engine.D
 					onebatch = append(onebatch, d)
 					if len(onebatch) >= batchLen {
 						fs <- onebatch
-						onebatch = []engine.Dict{}
+						onebatch = []utils.Dict{}
 
 					}
 				}
@@ -80,7 +81,7 @@ func (db *DBHandler) Query(filter engine.Dict, batchLeng ...int) chan []engine.D
 }
 
 // Filter batchLength default is 1.
-func (db *DBHandler) Filter(filterKey engine.Dict, batchLengths ...int) (onebatch []engine.Dict) {
+func (db *DBHandler) Filter(filterKey utils.Dict, batchLengths ...int) (onebatch []utils.Dict) {
 
 	batchLength := 1
 	if batchLengths != nil {
@@ -118,7 +119,7 @@ func (db *DBHandler) Filter(filterKey engine.Dict, batchLengths ...int) (onebatc
 }
 
 // Find .
-func (db *DBHandler) Find(filterKey engine.Dict) (one engine.Dict) {
+func (db *DBHandler) Find(filterKey utils.Dict) (one utils.Dict) {
 
 	if ds := db.Filter(filterKey); len(ds) > 0 {
 		return ds[0]
@@ -132,11 +133,11 @@ func (db *DBHandler) Remove() (err error) {
 	return
 }
 
-func (db *DBHandler) Delete(filter engine.Dict) *DBHandler {
+func (db *DBHandler) Delete(filter utils.Dict) *DBHandler {
 	return db
 }
 
-func (db *DBHandler) Insert(newdict []engine.Dict, keys ...string) *DBHandler {
+func (db *DBHandler) Insert(newdict []utils.Dict, keys ...string) *DBHandler {
 	if keys != nil {
 		db.Cursor.indexKeys = keys[0]
 	}
@@ -144,19 +145,19 @@ func (db *DBHandler) Insert(newdict []engine.Dict, keys ...string) *DBHandler {
 		db.Cursor.cache = append(db.Cursor.cache, d)
 		if len(db.Cursor.cache) > 10000 {
 			db.saveToStorage(db.Cursor.cache)
-			db.Cursor.cache = []engine.Dict{}
+			db.Cursor.cache = []utils.Dict{}
 		}
 	}
 
 	return db
 }
 
-func (db *DBHandler) Update(filter engine.Dict, newpart engine.Dict) *DBHandler {
+func (db *DBHandler) Update(filter utils.Dict, newpart utils.Dict) *DBHandler {
 
 	type TmpBd struct {
 		bias Bias
 		no   int
-		d    engine.Dict
+		d    utils.Dict
 	}
 	ts := []TmpBd{}
 	for k := range filter {

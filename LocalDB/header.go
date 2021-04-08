@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"github.com/Qingluan/FrameUtils/engine"
 	"io"
 	"io/ioutil"
 	"os"
+
+	"github.com/Qingluan/FrameUtils/utils"
 
 	"github.com/cheggaaa/pb/v3"
 )
@@ -112,7 +113,7 @@ func ReBuildIndexes(dbpath string, registedKeys ...string) (head *DBHeader) {
 		length := int64(len(oned))
 		end := start + length
 		bias := Bias{start, end}
-		d := engine.AsDict(oned)
+		d := utils.AsDict(oned)
 		// fmt.Println("len:", length, oned)
 		if bar != nil {
 			bar.Add64(length)

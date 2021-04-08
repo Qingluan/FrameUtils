@@ -1,8 +1,9 @@
 package LocalDB
 
 import (
-	"github.com/Qingluan/FrameUtils/engine"
 	"os"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 type Bias [2]int64
@@ -25,7 +26,7 @@ type DBHeader struct {
 type DBCursor struct {
 	Now       int
 	change    *ChangePoint
-	cache     []engine.Dict
+	cache     []utils.Dict
 	indexKeys string
 }
 
@@ -34,7 +35,7 @@ type DBHandler struct {
 	DBPath string
 	fb     *os.File
 	Cursor *DBCursor
-	datas  []engine.Dict
+	datas  []utils.Dict
 }
 type DBHeaderErr error
 type DBHeaderLoadErr error

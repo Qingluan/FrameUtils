@@ -12,6 +12,7 @@ import (
 	"flag"
 
 	"github.com/Qingluan/FrameUtils/engine"
+	"github.com/Qingluan/FrameUtils/utils"
 	"github.com/c-bata/go-prompt"
 )
 
@@ -46,7 +47,7 @@ func main() {
 		sengine := engine.EngineInit()
 		go sengine.Factory(nil)
 
-		sengine.SetResultListener(func(ls []engine.Line) {
+		sengine.SetResultListener(func(ls []utils.Line) {
 			for _, l := range ls {
 				fmt.Println(l)
 			}
@@ -74,7 +75,7 @@ func main() {
 			// for _, d := range obj.AsJson() {
 			// 	fmt.Println(d)
 			// }
-			var objs <-chan engine.Line
+			var objs <-chan utils.Line
 			if filter != "" {
 				objs = obj.Iter(filter)
 			} else {

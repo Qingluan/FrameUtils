@@ -3,10 +3,11 @@ package LocalDB
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Qingluan/FrameUtils/engine"
 	"log"
 	"os"
 	"sync"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 var (
@@ -25,12 +26,12 @@ func NewDBHandler(name string) (db *DBHandler, err error) {
 	return
 }
 
-func (db *DBHandler) saveToStorage(items []engine.Dict) *DBHandler {
+func (db *DBHandler) saveToStorage(items []utils.Dict) *DBHandler {
 	FileLock.Lock()
 	defer FileLock.Unlock()
 	mainkey := db.Cursor.indexKeys
 	defer func() {
-		db.Cursor.cache = []engine.Dict{}
+		db.Cursor.cache = []utils.Dict{}
 	}()
 
 	for _, v := range items {
@@ -76,7 +77,7 @@ func (db *DBHandler) Close() error {
 	return db.fb.Close()
 }
 
-func (db *DBHandler) getByBias(bias Bias) (d engine.Dict, err error) {
+func (db *DBHandler) getByBias(bias Bias) (d utils.Dict, err error) {
 	FileLock.Lock()
 	defer FileLock.Unlock()
 	buf := make([]byte, bias[1]-bias[0])
@@ -88,7 +89,7 @@ func (db *DBHandler) getByBias(bias Bias) (d engine.Dict, err error) {
 	if n < int(bias[1]-bias[0]) {
 		return nil, DBNotFoundErr(fmt.Errorf("read item by bias error !: %s", bias))
 	}
-	d = make(engine.Dict)
+	d = make(utils.Dict)
 	err = json.Unmarshal(buf, &d)
 	if err != nil {
 		log.Fatal("err json:", string(buf), bias)
@@ -141,7 +142,7 @@ func (db *DBHandler) changeBiasbyBias(b Bias, offset int, changeAllAfterHit bool
 
 // }
 
-func (db *DBHandler) changeByBias(bias Bias, old, newpart engine.Dict) {
+func (db *DBHandler) changeByBias(bias Bias, old, newpart utils.Dict) {
 	for k, v := range newpart {
 		old[k] = v
 	}
