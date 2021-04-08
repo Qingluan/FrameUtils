@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/url"
 	"strconv"
@@ -67,6 +68,31 @@ func removeScriptAndCss(raw string) string {
 
 }
 
+func EncodeToRaw(args []string, kargs Dict) (raw string) {
+	raw = strings.Join(args, " , ")
+	for k, v := range kargs {
+		switch v.(type) {
+		case string:
+			raw += fmt.Sprintf(" , %s = \"%s\"", k, v.(string))
+		case int:
+			raw += fmt.Sprintf(" , %s = %d", k, v.(int))
+		case []interface{}:
+			e := "["
+			for i, ei := range v.([]interface{}) {
+				if i != 0 {
+					e += ","
+				}
+				e += fmt.Sprintf("%v", ei)
+			}
+			e += "]"
+			raw += fmt.Sprintf(" , %s = %v ", k, e)
+		default:
+			raw += fmt.Sprintf(" , %s = \"%v\"", k, v)
+		}
+	}
+	return raw
+}
+
 func DecodeToOptions(raw string) (as []string, kargs Dict) {
 	if strings.TrimSpace(raw) == "" {
 		return
@@ -92,15 +118,19 @@ func DecodeToOptions(raw string) (as []string, kargs Dict) {
 
 		}
 	} else {
+		as = splitargs(strings.TrimSpace(raw))
+		// fmt.Println("as:", as)
 		needremove := []string{}
 		for i := range as {
 			w2 := as[i]
 			if isKargs(w2) {
+				// fmt.Println("isKargs:", w2)
 				kas = append(kas, parseArg(w2))
 				needremove = append(needremove, w2)
 			}
 		}
 		for _, is := range needremove {
+			// fmt.Println(is)
 			as = remove(as, is)
 		}
 	}

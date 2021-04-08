@@ -31,11 +31,49 @@ func try2str(v interface{}) (string, bool) {
 	return "", false
 }
 
+func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
+	copyConfig = new(TaskConfig)
+	copyConfig.TaskNum = config.TaskNum
+	copyConfig.Listen = config.Listen
+	copyConfig.LogServer = config.LogServer
+	copyConfig.Others = config.Others
+	copyConfig.Proxy = config.Proxy
+	copyConfig.ReTry = config.ReTry
+	copyConfig.LogPathStr = config.LogPathStr
+	copyConfig.Schema = config.Schema
+	for k, v := range config.state {
+		copyConfig.state[k] = v
+	}
+
+	for k, v := range config.depatch {
+		copyConfig.depatch[k] = v
+	}
+	return
+}
+
+func (config *TaskConfig) UrlApiLog(urlOrIp string) (api string) {
+	if !strings.HasPrefix(urlOrIp, "http") {
+		api = "http://" + urlOrIp
+	} else {
+		api = urlOrIp
+	}
+	if !strings.Contains(urlOrIp, ":") {
+		urlOrIp += ":4099"
+	}
+	if strings.Count(api, "/") < 3 {
+		api += "/task/v1/log"
+	}
+	return
+}
+
 func (config *TaskConfig) UrlApi(urlOrIp string) (api string) {
 	if !strings.HasPrefix(urlOrIp, "http") {
 		api = "http://" + urlOrIp
 	} else {
 		api = urlOrIp
+	}
+	if !strings.Contains(urlOrIp, ":") {
+		urlOrIp += ":4099"
 	}
 	if strings.Count(api, "/") < 3 {
 		api += "/task/v1/api"
@@ -63,16 +101,16 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 		for i, server := range servers {
 			if server != config.MyIP() {
 				syncCounter.Add(1)
-				go func(i, iC int, datai TData) {
-					defer syncCounter.Done()
+				go func(i, iC int, datai TData, w *sync.WaitGroup) {
+					defer w.Done()
 					delete(datai, "others")
-					if config.UpdateRequest(server, datai) {
+					if config.UpdateRequest(config.UrlApi(server), datai) {
 						if !utils.ArrayContains(config.Others, server) {
 							config.Others = append(config.Others, server)
 						}
 					}
 					log.Println("Wait update all servers:", utils.Yellow("left ", i, "/", iC), " waiting...")
-				}(i, iC, data)
+				}(i, iC, data, &syncCounter)
 			}
 		}
 		syncCounter.Wait()

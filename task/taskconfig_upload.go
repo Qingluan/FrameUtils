@@ -109,7 +109,7 @@ func Upload(id string, fileName string, target string, proxy string) (string, er
 
 }
 
-func (self *TaskConfig) DealWithUploadFile(w http.ResponseWriter, h *http.Request) {
+func (config *TaskConfig) DealWithUploadFile(w http.ResponseWriter, h *http.Request) {
 	if h.Method == "POST" {
 		f, _, err := h.FormFile("uploadFile")
 		if err != nil {

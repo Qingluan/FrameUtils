@@ -28,15 +28,21 @@ func _to_end(path string, buf []byte) (err error) {
 
 // 必须把TaskConfig 塞进TaskObj 里
 
-func CmdCall(tconfig *TaskConfig, raw string) (TaskObj, error) {
+func CmdCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, error) {
 
 	var cmd *exec.Cmd
 	var shellStr []string
-	args := utils.SplitByIgnoreQuote(raw, ",")
+
+	// args := utils.SplitByIgnoreQuote(raw, ",")
+	// args,kargs := utils.DecodeToOptions(raw)
 	cmdObj := CmdObj{
 		args:   args,
 		config: tconfig,
 	}
+	if e, ok := kargs["logTo"]; ok {
+		cmdObj.toGo = e.(string)
+	}
+
 	if runtime.GOOS == "windows" {
 		cmdObj.pre = []string{"cmd.exe", "/c"}
 	} else {
@@ -72,18 +78,21 @@ func CmdCall(tconfig *TaskConfig, raw string) (TaskObj, error) {
 	return cmdObj, nil
 }
 
-func HTTPCall(tconfig *TaskConfig, raw string) (TaskObj, error) {
+func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, error) {
 	sess := jupyter.NewSession()
 	var res *jupyter.SmartResponse
 	var err error
-	args, kargs := utils.DecodeToOptions(raw)
-	fmt.Println("Raw:", raw, "\nargs:", args, "\nkargs:", kargs)
+	// args, kargs := utils.DecodeToOptions(raw)
+	// fmt.Println("Raw:", raw, "\nargs:", args, "\nkargs:", kargs)
 	obj := ObjHTTP{
-		raw:    raw,
+		raw:    utils.EncodeToRaw(args, kargs),
 		url:    args[0],
 		args:   args,
 		kargs:  kargs,
 		config: tconfig,
+	}
+	if logTo, ok := kargs["logTo"]; ok {
+		obj.toGo = logTo.(string)
 	}
 	var proxy proxy.Dialer
 	if v, ok := kargs["proxy"]; ok {

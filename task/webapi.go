@@ -44,6 +44,11 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		if op, ok := data["oper"]; ok {
 			switch op {
+			case "test":
+				jsonWrite(w, TData{
+					"state": "ok",
+					"log":   "alive me",
+				})
 			case "pull":
 				// 如果返回ok说明在当前taskServer处理，false 转发给了target
 				if reply, ok, err := config.ProtocolRound(data); ok {

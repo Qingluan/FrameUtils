@@ -9,9 +9,14 @@ import (
 )
 
 type ErrObj struct {
-	Err error
-	tp  string
-	raw string
+	Err  error
+	tp   string
+	raw  string
+	toGo string
+}
+
+func (erro ErrObj) ToGo() string {
+	return erro.toGo
 }
 
 func (erro ErrObj) String() string {

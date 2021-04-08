@@ -5,4 +5,5 @@ type TaskObj interface {
 	ID() string
 	String() string
 	Error() error
+	ToGo() string
 }

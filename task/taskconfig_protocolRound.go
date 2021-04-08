@@ -83,7 +83,7 @@ func (taskconfig *TaskConfig) SendToOtherServer(ip string, data TData) (reply TD
 		return reply, err
 	} else {
 		data, _ := ioutil.ReadAll(res.Body)
-		err = json.Unmarshal(data, reply)
+		err = json.Unmarshal(data, &reply)
 	}
 	return
 }

@@ -22,16 +22,19 @@ type TaskConfig struct {
 	LogPathStr string   `json:"logPath" config:"logPath"`
 	Schema     string   `json:"schema" config:"schema"`
 	state      map[string]string
+	depatch    map[string]string
 	// 用来记录当前任务分配的服务器序号 Others[n] , n = (n + 1) % (len(Others))
 	taskDipatchCursor int
 	lock              sync.RWMutex
 }
 
 func NewTaskConfig(fileName string) (t *TaskConfig) {
+	// defer
 	t = new(TaskConfig)
 	err := utils.Unmarshal(fileName, t)
 	t.state = make(map[string]string)
-
+	t.depatch = make(map[string]string)
+	t.LoadState()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,12 +43,16 @@ func NewTaskConfig(fileName string) (t *TaskConfig) {
 }
 
 func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
+
 	t = new(TaskConfig)
 	if _, err := os.Stat(fileName); err != nil {
 		return NewTaskConfigDefault("http://localhost:4099/task/v1/log")
 	} else {
 		err := utils.Unmarshal(fileName, t)
 		t.state = make(map[string]string)
+
+		t.depatch = make(map[string]string)
+		t.LoadState()
 		if t.Schema == "" {
 
 			t.Schema = "http"
@@ -104,7 +111,7 @@ func (tconfig *TaskConfig) MakeSureTask(id string, runOrStop bool) {
 	}
 }
 
-func (tconfig TaskConfig) PatchWebAPI() {
+func (tconfig *TaskConfig) PatchWebAPI() {
 	http.HandleFunc("/task/v1/api", tconfig.TaskHandle)
 	http.HandleFunc("/task/v1/log", tconfig.uploadFile)
 	http.HandleFunc("/task/v1/", tconfig.SimeplUI)
@@ -112,8 +119,9 @@ func (tconfig TaskConfig) PatchWebAPI() {
 
 }
 
-func NewTaskConfigDefault(logServer string) *TaskConfig {
-	return &TaskConfig{
+func NewTaskConfigDefault(logServer string) (t *TaskConfig) {
+	defer t.LoadState()
+	t = &TaskConfig{
 		TaskNum:   100,
 		LogServer: logServer,
 		Others:    []string{},
@@ -123,6 +131,7 @@ func NewTaskConfigDefault(logServer string) *TaskConfig {
 		Schema:    "http",
 		state:     make(map[string]string),
 	}
+	return
 }
 
 /*DefaultTaskConfigJson :

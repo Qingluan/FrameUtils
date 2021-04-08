@@ -11,8 +11,13 @@ type ObjHTTP struct {
 	args   []string
 	raw    string
 	err    error
+	toGo   string
 	kargs  utils.Dict
 	config *TaskConfig
+}
+
+func (cmd ObjHTTP) ToGo() string {
+	return cmd.toGo
 }
 
 func (cmd ObjHTTP) ID() string {

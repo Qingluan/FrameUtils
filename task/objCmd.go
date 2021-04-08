@@ -9,11 +9,15 @@ type CmdObj struct {
 	args   []string
 	raw    string
 	err    error
+	toGo   string
 	config *TaskConfig
 }
 
 func (cmd CmdObj) ID() string {
 	return "cmd-" + NewID(cmd.raw)
+}
+func (cmd CmdObj) ToGo() string {
+	return cmd.toGo
 }
 
 func (cmd CmdObj) Args() []string {

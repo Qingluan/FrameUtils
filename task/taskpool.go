@@ -20,7 +20,7 @@ type TaskPool struct {
 	WaitChannel    chan []string
 	RunningChannel chan interface{}
 	TaskCounter    sync.WaitGroup
-	call           map[string]func(config *TaskConfig, raw string) (TaskObj, error)
+	call           map[string]func(config *TaskConfig, args []string, kargs utils.Dict) (TaskObj, error)
 	callinok       func(ok TaskObj)
 	callinerr      func(erro ErrObj)
 }
@@ -37,91 +37,11 @@ func NewTaskPool(config *TaskConfig) *TaskPool {
 	}
 }
 
-func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, err error)) {
-	proxy := task.config.Proxy
-	if res, err := Upload(ok.ID(), ok.String(), task.config.LogServer, proxy); err != nil {
-		after(ok, res, err)
-	} else {
-		after(ok, res, err)
-	}
-
-}
-
-func (task *TaskPool) Patch(callTp, raw string) {
-	if callTp == "" {
-		return
-	}
-	op := callTp
-	if call, ok := task.call[op]; ok {
-		task.RunningChannel <- 1
-		task.TaskCounter.Add(1)
-		go func(raw string) {
-			id := NewID(raw)
-			log.Println(utils.Yellow("Start:", id, raw))
-			defer func() {
-				<-task.RunningChannel
-				task.TaskCounter.Done()
-				log.Println(utils.Green("Finish:", id))
-			}()
-			if obj, err := call(task.config, raw); err != nil {
-				log.Println(utils.UnderLine("Err:", id))
-				task.ErrChannel <- ErrObj{err, op, raw}
-			} else if obj != nil {
-				task.OkChannel <- obj
-			} else {
-
-			}
-		}(raw)
-	}
-}
-
-func (task *TaskPool) StateCall(config *TaskConfig, raw string) (ok TaskObj, err error) {
-	logfiles, err := ioutil.ReadDir(task.config.LogPath())
-	if err != nil {
-		return nil, err
-	}
-	// args, kargs := utils.DecodeToOptions(raw)
-	fs := []string{}
-	for _, f := range logfiles {
-		fs = append(fs, f.Name())
-	}
-	buf, _ := json.Marshal(task.config)
-	buf2, _ := json.Marshal(fs)
-	buf3, _ := json.Marshal(task.config.state)
-	d := TData{
-		"running": fmt.Sprintf("%d", len(task.RunningChannel)),
-		"wait":    fmt.Sprintf("%d", len(task.WaitChannel)),
-		"config":  string(buf),
-		"logs":    string(buf2),
-		"task":    string(buf3),
-		"errnum":  fmt.Sprintf("%d", len(task.ErrChannel)),
-		"lognum":  fmt.Sprintf("%d", len(fs)),
-	}
-	out, _ := json.Marshal(d)
-	DefaultTaskOutputChannle <- string(out)
-	return nil, nil
-}
-
-func (task *TaskPool) DelayRetryPass(args ...string) {
-	if v, ok := task.ThrowCounter[args[0]]; ok {
-		if v > 10 {
-
-			log.Println("task give up:", utils.Magenta(args[0]), v)
-			return
-		}
-
-		task.ThrowCounter[args[0]] = v + 1
-
-		log.Println("task pass:", utils.Magenta(args[0]), v)
-	} else {
-		task.ThrowCounter[args[0]] = 1
-
-		log.Println("task pass:", utils.Magenta(args[0], v))
-	}
-	time.Sleep(5 * time.Second)
-	DefaultTaskWaitChnnael <- args
-}
-
+/** StartTask : async get depatched task
+这里从管道获取任务
+所有的任务都以 input 的形式过来， 通过utils.来解析
+如果有 logTo="" 的可选项，则完成后log打印和上传结果日志到这里否则在本地
+*/
 func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err error)) {
 	tick := time.NewTicker(15 * time.Second)
 	task.SetRuntime("state", task.StateCall)
@@ -176,6 +96,123 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 	}
 }
 
+func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, err error)) {
+	proxy := task.config.Proxy
+	logTo := ok.ToGo()
+	if logTo == "" {
+		logTo = task.config.LogServer
+	}
+	logToUrl := task.config.UrlApiLog(logTo)
+	if res, err := Upload(ok.ID(), ok.String(), logToUrl, proxy); err != nil {
+		after(ok, res, err)
+	} else {
+		after(ok, res, err)
+	}
+
+}
+
+/** Patch : 部署函数
+这里正式从 task.call中通过callTp选取函数来执行 目前有  Httpcall / cmdcall / 后续还支持tcpcall 等...
+
+*/
+func (task *TaskPool) Patch(callTp, raw string) {
+	if callTp == "" {
+		return
+	}
+	op := callTp
+	if call, ok := task.call[op]; ok {
+		task.RunningChannel <- 1
+		task.TaskCounter.Add(1)
+		go func(raw string, waiter *sync.WaitGroup, taskConfigCopy *TaskConfig, run chan interface{}, okChan chan TaskObj, errChan chan ErrObj) {
+			id := NewID(raw)
+
+			args, kargs := utils.DecodeToOptions(raw)
+			if len(args) == 0 {
+				if kargs == nil {
+					log.Println(utils.Yellow("Start: ", id, " ", raw))
+				} else if len(kargs) == 0 {
+					log.Println(utils.Yellow("Start: ", id, " ", raw))
+				} else {
+
+					log.Println(utils.Yellow("Start: ", id, " ", raw), "kargs:", kargs)
+				}
+			} else {
+				if kargs == nil {
+					log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
+				} else if len(kargs) == 0 {
+					log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
+				} else {
+					log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args, "kargs:", kargs)
+				}
+			}
+			logTo := ""
+			if e, ok := kargs["logTo"]; ok {
+				logTo = e.(string)
+			}
+			defer func() {
+				<-run
+				waiter.Done()
+				log.Println(utils.Green("Finish:", id))
+			}()
+			if obj, err := call(taskConfigCopy, args, kargs); err != nil {
+				log.Println(utils.UnderLine("Err:", id))
+				errChan <- ErrObj{err, op, raw, logTo}
+			} else if obj != nil {
+				okChan <- obj
+			} else {
+
+			}
+		}(raw, &task.TaskCounter, task.config.Copy(), task.RunningChannel, task.OkChannel, task.ErrChannel)
+	}
+}
+
+func (task *TaskPool) StateCall(config *TaskConfig, args []string, kargs utils.Dict) (ok TaskObj, err error) {
+	logfiles, err := ioutil.ReadDir(task.config.LogPath())
+	if err != nil {
+		return nil, err
+	}
+	// args, kargs := utils.DecodeToOptions(raw)
+	fs := []string{}
+	for _, f := range logfiles {
+		fs = append(fs, f.Name())
+	}
+	buf, _ := json.Marshal(task.config)
+	buf2, _ := json.Marshal(fs)
+	buf3, _ := json.Marshal(task.config.state)
+	d := TData{
+		"running": fmt.Sprintf("%d", len(task.RunningChannel)),
+		"wait":    fmt.Sprintf("%d", len(task.WaitChannel)),
+		"config":  string(buf),
+		"logs":    string(buf2),
+		"task":    string(buf3),
+		"errnum":  fmt.Sprintf("%d", len(task.ErrChannel)),
+		"lognum":  fmt.Sprintf("%d", len(fs)),
+	}
+	out, _ := json.Marshal(d)
+	DefaultTaskOutputChannle <- string(out)
+	return nil, nil
+}
+
+func (task *TaskPool) DelayRetryPass(args ...string) {
+	if v, ok := task.ThrowCounter[args[0]]; ok {
+		if v > 10 {
+
+			log.Println("task give up:", utils.Magenta(args[0]), v)
+			return
+		}
+
+		task.ThrowCounter[args[0]] = v + 1
+
+		log.Println("task pass:", utils.Magenta(args[0]), v)
+	} else {
+		task.ThrowCounter[args[0]] = 1
+
+		log.Println("task pass:", utils.Magenta(args[0], v))
+	}
+	time.Sleep(5 * time.Second)
+	DefaultTaskWaitChnnael <- args
+}
+
 func (task *TaskPool) State() (wait int, running int, errCount int) {
 	return len(task.WaitChannel), len(task.RunningChannel), len(task.ErrCounter)
 }
@@ -207,9 +244,9 @@ func (task *TaskPool) clearErrCounter() {
 	}
 }
 
-func (task *TaskPool) SetRuntime(name string, call func(config *TaskConfig, raw string) (TaskObj, error)) {
+func (task *TaskPool) SetRuntime(name string, call func(config *TaskConfig, args []string, kargs utils.Dict) (TaskObj, error)) {
 	if task.call == nil {
-		task.call = make(map[string]func(config *TaskConfig, raw string) (TaskObj, error))
+		task.call = make(map[string]func(config *TaskConfig, args []string, kargs utils.Dict) (TaskObj, error))
 	}
 	task.call[name] = call
 }

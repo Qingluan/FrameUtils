@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"sort"
 	"strings"
@@ -239,4 +240,16 @@ func SplitByIgnoreQuote(raw string, by string, quotes ...string) (out []string) 
 	}
 
 	return
+}
+
+func RandomChoice(raw []string) string {
+	e := rand.Int() % len(raw)
+	return raw[e]
+}
+
+func RandomShuffe(raw []string) (newOrder []string) {
+	rand.Shuffle(len(raw), func(i, j int) {
+		raw[i], raw[j] = raw[j], raw[i]
+	})
+	return raw
 }
