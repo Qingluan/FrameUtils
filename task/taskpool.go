@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -57,7 +58,13 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 				log.Println(utils.BRed("err args from waiChannel:", args))
 			}
 		case args := <-DefaultTaskWaitChnnael:
+
 			if len(args) == 1 {
+				if args[0] == "stop" || args[0] == "restart" {
+					task.config.SaveState()
+					os.Exit(0)
+					break
+				}
 				task.Patch(args[0], "")
 			} else if len(args) == 2 {
 				if _, ok := task.call[args[0]]; ok {

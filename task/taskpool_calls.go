@@ -36,6 +36,7 @@ func CmdCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, err
 	// args := utils.SplitByIgnoreQuote(raw, ",")
 	// args,kargs := utils.DecodeToOptions(raw)
 	cmdObj := CmdObj{
+		raw:    utils.EncodeToRaw(args, kargs),
 		args:   args,
 		config: tconfig,
 	}
@@ -103,6 +104,10 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 	} else {
 		proxy = nil
 	}
+
+	// 设置config 中任务的状态
+	tconfig.MakeSureTask(obj.ID(), true)
+	defer tconfig.MakeSureTask(obj.ID(), false)
 	if len(args) > 2 {
 		switch strings.TrimSpace(args[1]) {
 		case "post":

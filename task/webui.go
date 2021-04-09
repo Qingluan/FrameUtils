@@ -428,7 +428,7 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 
 	function showDetail(id){
 		$.post("/task/v1/api", JSON.stringify({
-			oper:"state",
+			oper:"pull",
 			id:id,
 		}),function(data){
 			console.log(data);

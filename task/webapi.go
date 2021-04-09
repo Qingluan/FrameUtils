@@ -11,6 +11,11 @@ import (
 	"strings"
 )
 
+var (
+	StopSingal    = []string{"stop"}
+	ReStartSingal = []string{"restart"}
+)
+
 type TData map[string]interface{}
 
 func jsonWrite(w io.Writer, data TData) {
@@ -44,12 +49,24 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		if op, ok := data["oper"]; ok {
 			switch op {
+			case "stop":
+				jsonWrite(w, TData{
+					"state": "ok",
+					"log":   "exit ...",
+				})
+				DefaultTaskWaitChnnael <- StopSingal
+			case "restart":
+				jsonWrite(w, TData{
+					"state": "ok",
+					"log":   "exit ...",
+				})
+				DefaultTaskWaitChnnael <- ReStartSingal
 			case "test":
 				jsonWrite(w, TData{
 					"state": "ok",
 					"log":   "alive me",
 				})
-			case "pull":
+			case "push":
 				// 如果返回ok说明在当前taskServer处理，false 转发给了target
 				if reply, ok, err := config.ProtocolRound(data); ok {
 					WithOrErr(w, data, func(args ...interface{}) TData {
@@ -103,7 +120,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					"state": "ok",
 					"log":   info,
 				})
-			case "state":
+			case "pull":
 				WithOrErr(w, data, func(args ...interface{}) TData {
 					id := args[0].(string)
 					d := config.LogPath()

@@ -33,6 +33,8 @@ func try2str(v interface{}) (string, bool) {
 
 func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig = new(TaskConfig)
+	copyConfig.state = make(map[string]string)
+	copyConfig.depatch = make(map[string]string)
 	copyConfig.TaskNum = config.TaskNum
 	copyConfig.Listen = config.Listen
 	copyConfig.LogServer = config.LogServer

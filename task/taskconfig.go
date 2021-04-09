@@ -46,7 +46,12 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 
 	t = new(TaskConfig)
 	if _, err := os.Stat(fileName); err != nil {
-		return NewTaskConfigDefault("http://localhost:4099/task/v1/log")
+		t = NewTaskConfigDefault("http://localhost:4099/task/v1/log")
+		t.state = make(map[string]string)
+
+		t.depatch = make(map[string]string)
+		t.LoadState()
+
 	} else {
 		err := utils.Unmarshal(fileName, t)
 		t.state = make(map[string]string)
@@ -105,6 +110,9 @@ func (tconfig *TaskConfig) MakeSureTask(id string, runOrStop bool) {
 	defer tconfig.lock.Unlock()
 	if runOrStop {
 		log.Println("+", color.New(color.FgGreen).Sprint(id))
+		if tconfig.state == nil {
+			log.Println("not init")
+		}
 		tconfig.state[id] = "running"
 	} else {
 		delete(tconfig.state, id)

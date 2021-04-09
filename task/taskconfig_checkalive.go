@@ -25,7 +25,7 @@ func (config *TaskConfig) CheckAlive(servers ...string) {
 		go func(w *sync.WaitGroup, s string, alive chan string) {
 			defer w.Done()
 			sess := jupyter.NewSession()
-			if res, err := sess.Post(config.UrlApi(s), map[string]string{
+			if res, err := sess.Json(config.UrlApi(s), map[string]string{
 				"oper": "test",
 			}); err == nil {
 				if _, ok := res.Json()["state"]; ok {
