@@ -75,7 +75,6 @@ func main() {
 		return
 	}
 	taskPool := task.NewTaskPool(config)
-	taskPool.SetRuntime("cmd", task.CmdCall)
 	taskPool.SetOkCall(func(o task.TaskObj) {
 		// log.Println(o.ID(), o.String())
 	})

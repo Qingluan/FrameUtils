@@ -165,3 +165,24 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 	return obj, err
 
 }
+
+func ConfigCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, error) {
+	raw := utils.EncodeToRaw(args, kargs)
+	if tp, ok := kargs["type"]; ok {
+		switch tp.(string) {
+		case "server":
+			for _, server := range args {
+				server = strings.TrimSpace(server)
+				if !utils.ArrayContains(tconfig.Others, server) {
+					tconfig.Others = append(tconfig.Others, server)
+				}
+			}
+		case "proxy":
+			if len(args) > 0 {
+				proxyStr := strings.TrimSpace(args[0])
+				tconfig.Proxy = proxyStr
+			}
+		}
+	}
+	return NewBaseObj(tconfig, raw, "", "config"), nil
+}

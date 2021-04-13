@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -47,6 +48,9 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 	tick := time.NewTicker(15 * time.Second)
 	task.SetRuntime("state", task.StateCall)
 	task.SetRuntime("http", HTTPCall)
+	task.SetRuntime("cmd", CmdCall)
+	task.SetRuntime("config", ConfigCall)
+
 	for {
 		select {
 		case args := <-task.WaitChannel:
@@ -161,11 +165,17 @@ func (task *TaskPool) Patch(callTp, raw string) {
 				waiter.Done()
 				log.Println(utils.Green("Finish:", id))
 			}()
+			// 对于几个特殊的call 函数特别调用，比如configCall 不会进入 okchannel
 			if obj, err := call(taskConfigCopy, args, kargs); err != nil {
 				log.Println(utils.UnderLine("Err:", id))
 				errChan <- ErrObj{err, op, raw, logTo}
 			} else if obj != nil {
-				okChan <- obj
+				// 从ID 获取类型
+				if strings.HasPrefix(obj.ID(), "config-") {
+					log.Println(utils.UnderLine(obj.ID()))
+				} else {
+					okChan <- obj
+				}
 			} else {
 
 			}
