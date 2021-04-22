@@ -35,6 +35,7 @@ func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig = new(TaskConfig)
 	copyConfig.state = make(map[string]string)
 	copyConfig.depatch = make(map[string]string)
+	copyConfig.procs = make(map[string]string)
 	copyConfig.TaskNum = config.TaskNum
 	copyConfig.Listen = config.Listen
 	copyConfig.LogServer = config.LogServer
@@ -49,6 +50,10 @@ func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 
 	for k, v := range config.depatch {
 		copyConfig.depatch[k] = v
+	}
+
+	for k, v := range config.procs {
+		copyConfig.procs[k] = v
 	}
 	return
 }

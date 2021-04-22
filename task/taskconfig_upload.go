@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
 	"github.com/fatih/color"
 )
@@ -28,6 +29,10 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	id := r.FormValue("id")
 	// fmt.Println(id, r.Form,r.Fo)
+	if v, ok := tconfig.depatch[id]; ok {
+		tconfig.depatch[id] = v + "-Finished"
+		log.Println("Finish:", utils.Green(id), " from : ", utils.Yellow(v))
+	}
 	file, handler, err := r.FormFile(id)
 	if err != nil {
 		log.Println("Error Retrieving the File", "|", id, "|")

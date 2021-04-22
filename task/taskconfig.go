@@ -23,6 +23,7 @@ type TaskConfig struct {
 	Schema     string   `json:"schema" config:"schema"`
 	state      map[string]string
 	depatch    map[string]string
+	procs      map[string]string
 	// 用来记录当前任务分配的服务器序号 Others[n] , n = (n + 1) % (len(Others))
 	taskDipatchCursor int
 	lock              sync.RWMutex
@@ -34,6 +35,7 @@ func NewTaskConfig(fileName string) (t *TaskConfig) {
 	err := utils.Unmarshal(fileName, t)
 	t.state = make(map[string]string)
 	t.depatch = make(map[string]string)
+	t.procs = make(map[string]string)
 	t.LoadState()
 	if err != nil {
 		log.Fatal(err)
@@ -48,14 +50,14 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 	if _, err := os.Stat(fileName); err != nil {
 		t = NewTaskConfigDefault("http://localhost:4099/task/v1/log")
 		t.state = make(map[string]string)
-
+		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
 		t.LoadState()
 
 	} else {
 		err := utils.Unmarshal(fileName, t)
 		t.state = make(map[string]string)
-
+		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
 		t.LoadState()
 		if t.Schema == "" {

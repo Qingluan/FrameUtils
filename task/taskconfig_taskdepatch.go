@@ -42,7 +42,10 @@ func (config *TaskConfig) depatchTask(data TData) (reply TData, err error) {
 	}
 	server := utils.RandomChoice(config.Others)
 	data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s\"", config.MyIP())
-	reply, err = config.ForwardCustom(config.UrlApi(server), "pull", data)
+	reply, err = config.ForwardCustom(config.UrlApi(server), "push", data)
+	if id, ok := reply["id"]; ok {
+		config.depatch[id.(string)] = server + "-" + "Running"
+	}
 	return
 }
 
