@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	jupyter "github.com/Qingluan/jupyter/http"
@@ -19,7 +21,9 @@ import (
 var (
 	checkFunc func() bool
 	// startCmd  string
-	beforedo func()
+	beforedo   func()
+	NowVersion = "v0.0"
+	lock       = sync.RWMutex{}
 )
 
 func KillOtherThenRun(pid int, startCmd string) {
@@ -47,6 +51,13 @@ func KillOtherThenRun(pid int, startCmd string) {
 	}
 }
 
+func SetVersion(ver string) {
+	lock.Lock()
+	defer lock.Unlock()
+	NowVersion = ver
+	log.Println("Version:", jupyter.Green(ver))
+}
+
 func UpgradeServer(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		buf, _ := ioutil.ReadAll(r.Body)
@@ -63,6 +74,16 @@ func UpgradeServer(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+func HTTPCheckVersion(url string) (string, bool) {
+	sess := jupyter.NewSession()
+	if res, err := sess.Get(url); err == nil {
+		if versionContent := strings.TrimSpace(res.String()); versionContent != NowVersion {
+			return versionContent, true
+		}
+	}
+	return NowVersion, false
 }
 
 func StartUpgradeClient(upgradeServiceURL, cmd string, waitSec int, check func() bool, before func()) {

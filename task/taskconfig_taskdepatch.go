@@ -15,16 +15,34 @@ import (
 
 func (config *TaskConfig) SaveState() {
 	Home, _ := os.Hostname()
-	state := filepath.Join(Home, ".config", "task-map.json")
+	depatch := filepath.Join(Home, ".config", "task-depatch.json")
+	state := filepath.Join(Home, ".config", "task-state.json")
+	others := filepath.Join(Home, ".config", "task-others.json")
+
 	data, _ := json.Marshal(config.depatch)
-	ioutil.WriteFile(state, data, os.ModePerm)
+	data2, _ := json.Marshal(config.Others)
+	data3, _ := json.Marshal(config.state)
+
+	ioutil.WriteFile(others, data2, os.ModePerm)
+	ioutil.WriteFile(depatch, data, os.ModePerm)
+	ioutil.WriteFile(state, data3, os.ModePerm)
 }
 func (config *TaskConfig) LoadState() {
 	Home, _ := os.Hostname()
-	state := filepath.Join(Home, ".config", "task-map.json")
+	depatch := filepath.Join(Home, ".config", "task-depatch.json")
+	state := filepath.Join(Home, ".config", "task-state.json")
+	others := filepath.Join(Home, ".config", "task-others.json")
 
-	if data, err := ioutil.ReadFile(state); err == nil {
+	if data, err := ioutil.ReadFile(depatch); err == nil {
 		json.Unmarshal(data, &config.depatch)
+	}
+
+	if data2, err := ioutil.ReadFile(others); err == nil {
+		json.Unmarshal(data2, &config.Others)
+	}
+
+	if data3, err := ioutil.ReadFile(state); err == nil {
+		json.Unmarshal(data3, &config.state)
 	}
 }
 
@@ -121,4 +139,33 @@ func (config *TaskConfig) DealWithUploadFile(w http.ResponseWriter, h *http.Requ
 			"state": "ok",
 		})
 	}
+}
+
+func (config *TaskConfig) DepatchByLines(lines ...string) (replys TData) {
+	config.CheckAlive(config.Others...)
+	replys = make(TData)
+	replys["state"] = "ok"
+	success := []string{}
+	fail := []string{}
+
+	for _, waitTask := range lines {
+		if reply, err := config.DepatchTask(waitTask); err != nil {
+
+			fail = append(fail, waitTask+":"+err.Error())
+		} else {
+			if reply["state"] == "ok" {
+				success = append(success, waitTask)
+			} else {
+				if log, ok := reply["log"]; ok {
+					fail = append(fail, waitTask+":"+log.(string))
+				} else {
+					fail = append(fail, waitTask)
+				}
+			}
+		}
+
+	}
+	replys["success"] = success
+	replys["fail"] = fail
+	return
 }

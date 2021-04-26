@@ -6,11 +6,13 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	// "math/rand"
 	// "time"
 
+	"github.com/Qingluan/FrameUtils/asset"
 	"github.com/Qingluan/FrameUtils/task"
 	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
@@ -30,8 +32,10 @@ func main() {
 	flag.Parse()
 
 	if _, err := os.Stat(configPath); err != nil {
-		log.Fatal(utils.BRed(err))
-		return
+		configPath, err = asset.AssetAsFile(filepath.Join("Res", "services", "TaskService", "conf.ini"))
+		if err != nil {
+			log.Fatal(utils.BRed(err))
+		}
 	}
 
 	if daemon {

@@ -1,7 +1,9 @@
 package task
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -9,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Qingluan/FrameUtils/utils"
 )
 
 var (
@@ -48,6 +52,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 			config.Update(configV)
 		}
 		if op, ok := data["oper"]; ok {
+			log.Println(utils.Green("[", op, "]"))
 			switch op {
 			case "stop":
 				jsonWrite(w, TData{
@@ -69,19 +74,57 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 			case "push":
 				// 如果返回ok说明在当前taskServer处理，false 转发给了target
 				if reply, ok, err := config.ProtocolRound(data); ok {
-					WithOrErr(w, data, func(args ...interface{}) TData {
-						input := args[0].(string)
-						tp := args[1].(string)
-						objType := strings.TrimSpace(tp)
+					if _, ok := data["encode"]; ok {
+						WithOrErr(w, data, func(args ...interface{}) TData {
+							data := args[0].(string)
+							encode := args[1].(string)
+							if encode == "base64" {
+								if buf, err := base64.StdEncoding.DecodeString(data); err != nil {
+									return TData{
+										"state": "fail",
+										"log":   err.Error(),
+									}
+								} else {
+									msg := ""
+									for _, line := range utils.SplitByIgnoreQuote(string(buf), "\n") {
+										fs := strings.SplitN(line, ",", 2)
+										objType := strings.TrimSpace(fs[0])
+										input := strings.TrimSpace(fs[1])
+										DefaultTaskWaitChnnael <- append([]string{objType}, input)
+										msg += fmt.Sprintf("%s-%s\n", objType, NewID(input))
+									}
+									return TData{
+										"state": "ok",
+										"id":    msg,
+									}
+								}
+							} else {
+								return TData{
+									"state": "fail",
+									"log":   "now only supported encode: base64",
+								}
+							}
+							// objType := strings.TrimSpace(tp)
+							// fmt.Println("r:", args[0], "tp:", tp)
+							// fs := utils.SplitByIgnoreQuote(input, ",")
 
-						// fmt.Println("r:", args[0], "tp:", tp)
-						// fs := utils.SplitByIgnoreQuote(input, ",")
-						DefaultTaskWaitChnnael <- append([]string{objType}, input)
-						return TData{
-							"state": "ok",
-							"id":    objType + "-" + NewID(input),
-						}
-					}, "input", "tp")
+						}, "input", "encode")
+					} else {
+						WithOrErr(w, data, func(args ...interface{}) TData {
+							input := args[0].(string)
+							tp := args[1].(string)
+							objType := strings.TrimSpace(tp)
+
+							// fmt.Println("r:", args[0], "tp:", tp)
+							// fs := utils.SplitByIgnoreQuote(input, ",")
+							DefaultTaskWaitChnnael <- append([]string{objType}, input)
+							return TData{
+								"state": "ok",
+								"id":    objType + "-" + NewID(input),
+							}
+						}, "input", "tp")
+					}
+
 				} else if err != nil {
 					jsonWrite(w, TData{
 						"state": "fail",

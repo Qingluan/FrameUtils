@@ -122,8 +122,17 @@ func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, 
 
 }
 
-/** Patch : 部署函数
-这里正式从 task.call中通过callTp选取函数来执行 目前有  Httpcall / cmdcall / 后续还支持tcpcall 等...
+/** Patch :
+### 部署函数
+	这里正式从 task.call中通过callTp选取函数来执行 目前有  Httpcall / cmdcall / 后续还支持tcpcall 等...
+
+> 如果 Others 存在,而 kargs 里没有特别指明 Local=trueOrAnyThing 则使用远端分布式部署任务
+#### 支持调用类型
+
+ * http
+ * cmd
+ * config
+ * tcp
 
 */
 func (task *TaskPool) Patch(callTp, raw string) {
@@ -202,6 +211,7 @@ func (task *TaskPool) StateCall(config *TaskConfig, args []string, kargs utils.D
 		"config":  string(buf),
 		"logs":    string(buf2),
 		"task":    string(buf3),
+		"others":  strings.Join(task.config.Others, ","),
 		"errnum":  fmt.Sprintf("%d", len(task.ErrChannel)),
 		"lognum":  fmt.Sprintf("%d", len(fs)),
 	}

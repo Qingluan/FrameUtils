@@ -1,6 +1,7 @@
 package task
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -102,27 +103,33 @@ func (config *TaskConfig) UpdateRequest(url string, data TData) bool {
 }
 
 func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info string) {
-	if servers := utils.SplitByIgnoreQuote(allservers, ","); utils.ArrayContains(servers, config.MyIP()) {
+	if servers := utils.SplitByIgnoreQuote(allservers, ","); len(servers) > 0 {
 		var syncCounter sync.WaitGroup
 		iC := len(servers) - 1
-		for i, server := range servers {
-			if server != config.MyIP() {
-				syncCounter.Add(1)
-				go func(i, iC int, datai TData, w *sync.WaitGroup) {
-					defer w.Done()
-					delete(datai, "others")
-					if config.UpdateRequest(config.UrlApi(server), datai) {
-						if !utils.ArrayContains(config.Others, server) {
-							config.Others = append(config.Others, server)
-						}
+		// log.Println("All Server :", utils.Yellow(allservers))
+		for i, s := range servers {
+			// if server != config.MyIP() {
+			syncCounter.Add(1)
+			go func(i, iC int, server string, datai TData, w *sync.WaitGroup) {
+				defer w.Done()
+				delete(datai, "others")
+				if config.UpdateRequest(config.UrlApi(server), datai) {
+					if !utils.ArrayContains(config.Others, server) {
+						log.Println("+ Controller:", utils.Green(server), utils.Yellow(" left ", i, "/", iC))
+						info += fmt.Sprintf("+ Controller:%s\n", server)
+						config.Others = append(config.Others, server)
+					} else {
+						log.Println(utils.Red("Fail :", server), utils.Yellow(" left ", i, "/", iC))
 					}
-					log.Println("Wait update all servers:", utils.Yellow("left ", i, "/", iC), " waiting...")
-				}(i, iC, data, &syncCounter)
-			}
+				} else {
+					log.Println(utils.Red("Fail :", server), utils.Yellow(" left ", i, "/", iC))
+				}
+			}(i, iC, s, data, &syncCounter)
+			// }
 		}
 		syncCounter.Wait()
 	} else {
-		info += "no myip include in 'others'"
+		info += "no ip in 'others'"
 		// return
 	}
 	return
@@ -132,6 +139,7 @@ func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 	ifsync := false
 	allserver := ""
 	if v, ok := try2str(data["others"]); ok {
+		log.Println("Found Other:", utils.Green(v))
 		ifsync = true
 		allserver = v
 	}
@@ -146,7 +154,7 @@ func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 		config.TaskNum = v
 	}
 	if ifsync {
-		config.SyncAllConfig(allserver, data)
+		info = config.SyncAllConfig(allserver, data)
 	}
 	return
 }
