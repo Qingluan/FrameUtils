@@ -134,7 +134,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					jsonWrite(w, reply)
 				}
 
-			// 转发的处理和pull一样只是返回不同
+			// 转发的处理和push一样只是返回不同
 			case "forward":
 				if reply, ok, err := config.ProtocolRound(data); ok {
 					WithOrErr(w, data, func(args ...interface{}) TData {
@@ -222,7 +222,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 		} else {
 			jsonWrite(w, TData{
 				"state": "fail",
-				"log":   "lack \"oper\" ",
+				"log":   "lack \"oper\" [task : ls/push/pull/clear/config/forward | sys: test/stop/restart] ",
 			})
 		}
 	default:

@@ -4,6 +4,7 @@ import (
 	// "fmt"
 
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -98,6 +99,17 @@ func main() {
 		log.Println(utils.UnderLine(res))
 	})
 
+	logo := `
+    ___________              __       _________               __                  
+    \__    ___/____    _____|  | __  /   _____/__.__. _______/  |_  ____   _____  
+      |    |  \__  \  /  ___/  |/ /  \_____  <   |  |/  ___/\   __\/ __ \ /     \ 
+      |    |   / __ \_\___ \|    <   /        \___  |\___ \  |  | \  ___/|  Y Y  \
+      |____|  (____  /____  >__|_ \ /_______  / ____/____  > |__|  \___  >__|_|  /
+                   \/     \/     \/         \/\/         \/            \/      \/ 
+
+    `
+	fmt.Println(utils.Green(logo))
+	fmt.Println(utils.Yellow("Listen:", config.Listen))
 	config.StartTaskWebServer()
 	// fmt.Println(taskPool)
 }

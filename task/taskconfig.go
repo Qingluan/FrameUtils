@@ -74,6 +74,10 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 }
 
 func (tconfig *TaskConfig) StartTaskWebServer() {
+	err := tconfig.BuildWebInitialization()
+	if err != nil {
+		log.Fatal(err)
+	}
 	tconfig.PatchWebAPI()
 	log.Fatal(http.ListenAndServe(tconfig.Listen, nil))
 }
