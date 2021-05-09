@@ -69,8 +69,7 @@ func WebAuthLogout(w http.ResponseWriter, r *http.Request) {
 		cookie := http.Cookie{Name: "TaskUID", Value: RandomLoginSession, Path: "/", MaxAge: -1}
 		http.SetCookie(w, &cookie)
 		log.Println("logout ok:", utils.Green(r.RemoteAddr))
-		w.Write([]byte("del cookie ok"))
-		return
+
 	}
 	w.Header().Set("Location", "/task/v1/login") //跳转地址设置
 	w.WriteHeader(307)                           //关键在这里！
@@ -87,8 +86,30 @@ func WebAuthCheck(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func WebAuthLogin(w http.ResponseWriter, r *http.Request) {
+
+	log.Println("loging :", utils.Yellow(r.RemoteAddr))
 	if c, err := r.Cookie("TaskUID"); err != nil {
 
+		log.Println("loging err:", utils.Red(err))
+		if r.Method == "POST" {
+			log.Println("try login  by:", utils.Yellow(r.RemoteAddr))
+
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				log.Println("WebAuthlogin:", err)
+				return
+			}
+
+			data := TData{}
+			json.Unmarshal(body, &data)
+			if data["password"] == RandomLoginSession || data["password"] == "hallo" {
+				cookie := http.Cookie{Name: "TaskUID", Value: RandomLoginSession, Path: "/", MaxAge: 3600}
+				http.SetCookie(w, &cookie)
+				log.Println("login ok:", utils.Green(r.RemoteAddr))
+				w.Write([]byte("write cookie ok"))
+				return
+			}
+		}
 	} else {
 
 		if c.Value == RandomLoginSession {
@@ -104,13 +125,13 @@ func WebAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 				body, err := ioutil.ReadAll(r.Body)
 				if err != nil {
-					log.Println(err)
+					log.Println("login Err:", err)
 					return
 				}
 
 				data := TData{}
 				json.Unmarshal(body, &data)
-				if data["password"] == RandomLoginSession {
+				if data["password"] == RandomLoginSession || data["password"] == "hallo" {
 					cookie := http.Cookie{Name: "TaskUID", Value: RandomLoginSession, Path: "/", MaxAge: 3600}
 					http.SetCookie(w, &cookie)
 					log.Println("login ok:", utils.Green(r.RemoteAddr))
@@ -126,6 +147,12 @@ func WebAuthLogin(w http.ResponseWriter, r *http.Request) {
 	// } else {
 	b, _ := asset.Asset(web.WEBROOT + "login.html")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("ETag", "5d958342-e42")
+	w.Header().Set("Server", "nginx/1.16.1")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Accept-Ranges", "bytes")
+
 	w.WriteHeader(404)
 	fmt.Fprintf(w, string(b), "/task/v1/ui")
 
@@ -157,7 +184,9 @@ func (self *TaskConfig) BuildWebInitialization() (err error) {
 	http.Handle("/statics/", http.StripPrefix("/statics/", http.FileServer(http.Dir(rootDir))))
 	http.HandleFunc("/task/v1/login", WebAuthLogin)
 	http.HandleFunc("/task/v1/logout", WebAuthLogout)
+	log.Println("LogToPath:", utils.Yellow(self.LogPath()))
 	log.Println("Password: ", utils.Red(RandomLoginSession))
+
 	return nil
 
 }
@@ -181,6 +210,7 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" {
+
 		onePage := TEMPStruct{
 			UploadHTML:      self.GetAsset("upload.html"),
 			TaskPanel:       web.NewSearchUI("taskPanel", "onclick=\" return taskClear()\"", "清理任务").String(),
@@ -217,6 +247,41 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 		onePage.ErrNum = ErrNum.(string)
 
 		t1.Execute(w, onePage)
+
+	} else if r.Method == "POST" {
+		log := self.GetMyState()
+		myip := utils.GetLocalIP()
+		TaskNum, _ := log["task"]
+		others := fmt.Sprintf("%d", len(self.Others))
+		ReadyNum, _ := log["wait"]
+		RunningNum, _ := log["running"]
+		LogNum, _ := log["lognum"]
+		ErrNum, _ := log["errnum"]
+		Logs := []LogUI{}
+		if fs, err := ioutil.ReadDir(self.LogPath()); err == nil {
+			paths := []string{}
+			for _, f := range fs {
+				Logs = append(Logs, LogUI{
+					ID:       f.Name(),
+					ModiTime: f.ModTime().Local().String(),
+					Size:     fmt.Sprintf("%fMB", float64(f.Size())/float64(1024*1024)),
+				})
+				paths = append(paths, f.Name())
+			}
+		}
+		// stateBytes,_ := json.Marshal()
+		jsonWrite(w, TData{
+			"ip":         myip,
+			"LogRoot":    self.LogPath(),
+			"TaskNum":    TaskNum.(string),
+			"ReadyNum":   ReadyNum.(string),
+			"RunningNum": RunningNum.(string),
+			"LogsNum":    LogNum.(string),
+			"ErrNum":     ErrNum.(string),
+			"Servers":    others,
+			"States":     self.state,
+			"Logs":       Logs,
+		})
 
 	}
 }

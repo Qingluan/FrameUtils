@@ -43,7 +43,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Println(err)
+			log.Println("Task handle:", err)
 			return
 		}
 		data := TData{}
@@ -176,6 +176,10 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					id := args[0].(string)
 					d := config.LogPath()
 					path := filepath.Join(d, id)
+					if strings.Contains(path, "http-") {
+
+						w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+					}
 					if !strings.HasSuffix(path, ".log") {
 						path += ".log"
 					}

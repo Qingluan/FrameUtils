@@ -20,6 +20,10 @@ const ()
 
 func _to_end(path string, buf []byte) (err error) {
 	outfile, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		log.Println("_to_end:", err)
+		return
+	}
 	outfile.Write([]byte(fmt.Sprintf("\n====================== %s ======================\n", time.Now().Local().String())))
 	outfile.Write(buf)
 	defer outfile.Close()
@@ -97,6 +101,7 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 	}
 	if logTo, ok := kargs["logTo"]; ok {
 		obj.toGo = logTo.(string)
+		delete(kargs, "logTo")
 	}
 	var proxy proxy.Dialer
 	if v, ok := kargs["proxy"]; ok {

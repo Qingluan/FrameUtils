@@ -150,9 +150,15 @@
 		<li>
 		  <a href="#" class="nav-link text-white">
 			<svg class="bi me-2" width="16" height="16"><use xlink:href="#grid"/></svg>
-			日志数: {{.LogsNum}}
+			日志数: {{.LogsNum}} 
 		  </a>
 		</li>
+		<li>
+			<a href="#" class="nav-link text-white">
+			  <svg class="bi me-2" width="16" height="16"><use xlink:href="#grid"/></svg>
+			  日志地址: {{ .LogRoot}}
+			</a>
+		  </li>
 		<li>
 		  <a href="#" class="nav-link text-white">
 			<svg class="bi me-2" width="16" height="16"><use xlink:href="#people-circle"/></svg>
@@ -196,7 +202,7 @@
 	
 	<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 	  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-		<h1 class="h2">Dashboard <em> {{ .LogRoot}}</em></h1>
+		<!-- <h1 class="h2">Dashboard </h1> -->
 		<div class="btn-toolbar mb-2 mb-md-0">
 		  <!-- <div class="btn-group me-2">
 			<button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
@@ -236,7 +242,7 @@
 		</table>
 	  </div>
 	  <canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas>
-	<div class="modal fade" id="showModal" tabindex="-1" role="dialog" aria-labelledby="showModalTitle" aria-hidden="true">
+	<div class="modal fade" id="showModal" tabindex="-1" style="width: 70%;" role="dialog" aria-labelledby="showModalTitle" aria-hidden="true">
 	  <div class="modal-dialog" role="document">
 		<div class="modal-content">
 		  <div class="modal-header">
@@ -248,10 +254,7 @@
 		  <div id="modal-body" style="margin-left:10px">
 			{{.UploadHTML}}
 		  </div>
-		  <div class="modal-footer">
-			<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-			<button type="button" class="btn btn-primary">Save changes</button>
-		  </div>
+		  
 		</div>
 	  </div>
 	</div>

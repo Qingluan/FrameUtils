@@ -111,6 +111,7 @@
                         var data = JSON.parse( ajax.responseText );
                         form.classList.add( data.state == 'ok' ? 'is-success' : 'is-error' );
                         if( !data.state ) errorMsg.textContent = data.error;
+                        $("#showModal").modal("hide")
                     }
                     else alert( 'Error. Please, contact the webmaster!' );
                 };

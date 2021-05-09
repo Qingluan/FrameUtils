@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/Qingluan/FrameUtils/utils"
@@ -21,6 +22,8 @@ type TaskConfig struct {
 	ReTry      int      `json:"try" config:"try"`
 	LogPathStr string   `json:"logPath" config:"logPath"`
 	Schema     string   `json:"schema" config:"schema"`
+	SSLCert    string   `json:"sslcert" config:"sslcert"`
+	SSLKey     string   `json:"sslkey" config:"sslkey"`
 	state      map[string]string
 	depatch    map[string]string
 	procs      map[string]string
@@ -39,6 +42,7 @@ func NewTaskConfig(fileName string) (t *TaskConfig) {
 	t.depatch = make(map[string]string)
 	t.procs = make(map[string]string)
 	t.LoadState()
+	log.Println("Listen:", t.Listen)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +85,12 @@ func (tconfig *TaskConfig) StartTaskWebServer() {
 		log.Fatal(err)
 	}
 	tconfig.PatchWebAPI()
-	log.Fatal(http.ListenAndServe(tconfig.Listen, nil))
+	if tconfig.SSLCert != "" {
+		log.Fatal("HTTPS Server:", http.ListenAndServeTLS(tconfig.Listen, tconfig.SSLCert, tconfig.SSLKey, nil))
+	} else {
+		log.Fatal("HTTP Server:", http.ListenAndServe(tconfig.Listen, nil))
+
+	}
 }
 
 func (tconfig *TaskConfig) Get(name string) interface{} {
@@ -177,4 +186,8 @@ func DefaultTaskConfigIni() string {
 }
 func (taskConfig *TaskConfig) MyIP() (ip string) {
 	return utils.GetLocalIP()
+}
+
+func (taskConfig *TaskConfig) MyPort() (port string) {
+	return strings.Split(taskConfig.Listen, ":")[1]
 }

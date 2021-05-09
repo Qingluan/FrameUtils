@@ -114,6 +114,7 @@ func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, 
 		logTo = task.config.LogServer
 	}
 	logToUrl := task.config.UrlApiLog(logTo)
+	log.Println("LogTo:", logToUrl, logTo)
 	if res, err := Upload(ok.ID(), ok.String(), logToUrl, proxy); err != nil {
 		after(ok, res, err)
 	} else {
@@ -172,7 +173,7 @@ func (task *TaskPool) Patch(callTp, raw string) {
 			defer func() {
 				<-run
 				waiter.Done()
-				log.Println(utils.Green("Finish:", id))
+				log.Println("Patched || ", utils.Green("Finish:", id))
 			}()
 			// 对于几个特殊的call 函数特别调用，比如configCall 不会进入 okchannel
 			if obj, err := call(taskConfigCopy, args, kargs); err != nil {

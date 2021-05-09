@@ -104,6 +104,7 @@ func Upload(id string, fileName string, target string, proxy string) (string, er
 	} else {
 		ret, err := ioutil.ReadAll(res.Body)
 		if err != nil {
+			log.Println("Upload err:", err)
 			return "", err
 		}
 		return string(ret), nil

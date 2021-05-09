@@ -76,6 +76,7 @@ $("#settingSubmit").click(function(){
         others:vothers,
     },data =>{
         notifymsg(data,true)
+        $("#showModalSetting").modal("hide");
     })
 })
 
@@ -88,5 +89,16 @@ $("#taskSubmit").click(function(){
         input:input,
     },data =>{
         notifymsg(data,true)
+        
+        $("#showModalForm").modal("hide");
     })
 })
+
+
+function StateUpdate(){
+    $.post("/task/v1", JSON.stringify(),function(data){
+        console.log(data);
+        var data = JSON.parse(data);
+        console.log(data);
+    })
+}

@@ -72,7 +72,7 @@ func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 
 func (config *TaskConfig) UrlApiLog(urlOrIp string) (api string) {
 	if !strings.HasPrefix(urlOrIp, "http") {
-		api = "http://" + urlOrIp
+		api = "https://" + urlOrIp
 	} else {
 		api = urlOrIp
 	}
@@ -86,13 +86,13 @@ func (config *TaskConfig) UrlApiLog(urlOrIp string) (api string) {
 }
 
 func (config *TaskConfig) UrlApi(urlOrIp string) (api string) {
-	if !strings.HasPrefix(urlOrIp, "http") {
-		api = "http://" + urlOrIp
+	if !strings.HasPrefix(urlOrIp, "https") {
+		api = "https://" + urlOrIp
 	} else {
 		api = urlOrIp
 	}
 	if !strings.Contains(urlOrIp, ":") {
-		urlOrIp += ":4099"
+		api += ":4099"
 	}
 	if strings.Count(api, "/") < 3 {
 		api += "/task/v1/api"
@@ -102,7 +102,7 @@ func (config *TaskConfig) UrlApi(urlOrIp string) (api string) {
 
 func (config *TaskConfig) UpdateRequest(url string, data TData) bool {
 	if reply, err := config.ForwardCustom(url, "config", data); err != nil {
-		log.Println("update fail:", utils.Red(err))
+		log.Println("update fail:", url, ":", utils.Red(err))
 	} else {
 		if reply["state"] != "ok" {
 			return false
@@ -119,6 +119,7 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 		iC := len(servers) - 1
 		// log.Println("All Server :", utils.Yellow(allservers))
 		delete(data, "others")
+		data["logTo"] = config.MyIP() + ":" + config.MyPort()
 		for i, s := range servers {
 			// if server != config.MyIP() {
 			syncCounter.Add(1)
@@ -144,12 +145,14 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 		info += "no ip in 'others'"
 		// return
 	}
+	log.Println("Server:", config.Others)
 	return
 }
 
 func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 	ifsync := false
 	allserver := ""
+	info = fmt.Sprintf("config : %d", len(data))
 	if v, ok := try2str(data["others"]); ok {
 		log.Println("Found Other:", utils.Green(v))
 		ifsync = true
@@ -169,6 +172,11 @@ func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 	}
 	if v, ok := try2int(data["taskNum"]); ok {
 		config.TaskNum = v
+	}
+	if v, ok := try2str(data["logTo"]); ok {
+		config.LogServer = v
+		log.Println("Setting LogTo : ", data["logTo"])
+		info += "\nlogTo:" + v
 	}
 	if ifsync {
 		info = config.SyncAllConfig(allserver, data)

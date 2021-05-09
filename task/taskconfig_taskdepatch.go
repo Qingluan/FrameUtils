@@ -62,7 +62,9 @@ func (config *TaskConfig) depatchTask(data TData) (reply TData, useNode string, 
 	}
 	server := utils.RandomChoice(config.Others)
 	useNode = server
-	data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s\"", config.MyIP())
+	data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s:%s\"", config.MyIP(), config.MyPort())
+
+	// data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s:%s\"", config.MyIP(), config.MyPort())
 	reply, err = config.ForwardCustom(config.UrlApi(server), "push", data)
 	if id, ok := reply["id"]; ok {
 		config.depatch[id.(string)] = server + "-" + "Running"
