@@ -26,7 +26,9 @@ type TaskConfig struct {
 	procs      map[string]string
 	// 用来记录当前任务分配的服务器序号 Others[n] , n = (n + 1) % (len(Others))
 	taskDipatchCursor int
-	lock              sync.RWMutex
+	// 开启服务时初始的登陆密码，每次随机
+	RandomLoginSession string
+	lock               sync.RWMutex
 }
 
 func NewTaskConfig(fileName string) (t *TaskConfig) {

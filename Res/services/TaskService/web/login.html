@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskSystem Login</title>
+</head>
+<body>
+    
+<div  class="input-group mb-3">
+    <form action="/task/v1/login" method="POST">
+        <input type="password" class="form-control" placeholder="input..." id="password"  aria-describedby="button-addon2">
+        <button class="btn btn-outline-secondary" id="loginbutton" type="button"   >登录</button>
+    </form>
+</div>
+    <script src="/statics/jquery.js"></script>
+
+    <script>
+        $("#loginbutton").click(function(){
+            $.post("/task/v1/login",JSON.stringify({
+                "password":$("#password").val(),
+            }),function(data){
+                window.location.href = "%s"
+            })
+        })
+        
+    </script>
+</body>
+</html>

@@ -158,11 +158,19 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					jsonWrite(w, reply)
 				}
 			case "config":
-				info := config.UpdateMyConfig(data)
-				jsonWrite(w, TData{
-					"state": "ok",
-					"log":   info,
-				})
+				log.Println(utils.Green("try to config ....:", data))
+				if info := config.UpdateMyConfig(data); info != "" {
+					jsonWrite(w, TData{
+						"state": "ok",
+						"log":   info,
+					})
+				} else {
+					jsonWrite(w, TData{
+						"state": "fail",
+						"log":   "no reply",
+					})
+				}
+
 			case "pull":
 				WithOrErr(w, data, func(args ...interface{}) TData {
 					id := args[0].(string)

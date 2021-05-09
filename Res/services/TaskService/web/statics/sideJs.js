@@ -65,3 +65,28 @@ $("#taskPanel>button").click(function(){
         }
     })
 })
+
+$("#settingSubmit").click(function(){
+    var vproxy = $("#settingProxy").val()
+    var vothers = $("#settingOthers").val().split("\n")
+    console.log(vothers.join(","),vproxy)
+    api({
+        oper:"config",
+        proxy:vproxy,
+        others:vothers,
+    },data =>{
+        notifymsg(data,true)
+    })
+})
+
+$("#taskSubmit").click(function(){
+    var tp = $("#taskOper").val();
+    var input = $("#taskInput").val();
+    api({
+        oper:"push",
+        tp:tp,
+        input:input,
+    },data =>{
+        notifymsg(data,true)
+    })
+})

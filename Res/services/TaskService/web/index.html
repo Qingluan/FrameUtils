@@ -189,7 +189,7 @@
 		  <li><a class="dropdown-item" href="#">Settings</a></li>
 		  <li><a class="dropdown-item" href="#">Profile</a></li>
 		  <li><hr class="dropdown-divider"></li>
-		  <li><a class="dropdown-item" href="#">Sign out</a></li>
+		  <li><a class="dropdown-item" href="/task/v1/logout">Sign out</a></li>
 		</ul>
 	  </div>
 	</div>
@@ -198,13 +198,12 @@
 	  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 		<h1 class="h2">Dashboard <em> {{ .LogRoot}}</em></h1>
 		<div class="btn-toolbar mb-2 mb-md-0">
-		  <div class="btn-group me-2">
+		  <!-- <div class="btn-group me-2">
 			<button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
 			<button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
-		  </div>
-		  <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
-			<span data-feather="calendar"></span>
-			This week
+		  </div> -->
+		  <button type="button" class="btn btn-sm  btn-outline-secondary">
+			<a class="dropdown-item" href="/task/v1/logout">推出</a>
 		  </button>
 		</div>
 	  </div>

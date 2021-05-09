@@ -32,6 +32,17 @@ func try2str(v interface{}) (string, bool) {
 	return "", false
 }
 
+func try2array(v interface{}) (e []string, b bool) {
+	switch v.(type) {
+	case []interface{}:
+		for _, v := range v.([]interface{}) {
+			e = append(e, v.(string))
+		}
+		return e, true
+	}
+	return []string{}, false
+}
+
 func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig = new(TaskConfig)
 	copyConfig.state = make(map[string]string)
@@ -107,12 +118,13 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 		var syncCounter sync.WaitGroup
 		iC := len(servers) - 1
 		// log.Println("All Server :", utils.Yellow(allservers))
+		delete(data, "others")
 		for i, s := range servers {
 			// if server != config.MyIP() {
 			syncCounter.Add(1)
 			go func(i, iC int, server string, datai TData, w *sync.WaitGroup) {
 				defer w.Done()
-				delete(datai, "others")
+
 				if config.UpdateRequest(config.UrlApi(server), datai) {
 					if !utils.ArrayContains(config.Others, server) {
 						log.Println("+ Controller:", utils.Green(server), utils.Yellow(" left ", i, "/", iC))
@@ -142,6 +154,11 @@ func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 		log.Println("Found Other:", utils.Green(v))
 		ifsync = true
 		allserver = v
+	} else {
+		if v, ok := try2array(data["others"]); ok {
+			ifsync = true
+			allserver = strings.Join(v, ",")
+		}
 	}
 
 	if v, ok := try2str(data["proxy"]); ok {

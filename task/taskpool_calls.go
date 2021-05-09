@@ -85,9 +85,12 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 	var err error
 	// args, kargs := utils.DecodeToOptions(raw)
 	// fmt.Println("Raw:", raw, "\nargs:", args, "\nkargs:", kargs)
+	if !strings.HasPrefix(args[0], "http") {
+		args[0] = "http://" + args[0]
+	}
 	obj := ObjHTTP{
 		raw:    utils.EncodeToRaw(args, kargs),
-		url:    args[0],
+		url:    strings.TrimSpace(args[0]),
 		args:   args,
 		kargs:  kargs,
 		config: tconfig,
@@ -133,7 +136,7 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 
 		}
 	} else {
-		if res, err = sess.Get(strings.TrimSpace(args[0])); err != nil {
+		if res, err = sess.Get(obj.url); err != nil {
 			obj.err = err
 		}
 
