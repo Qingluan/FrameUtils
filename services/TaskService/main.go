@@ -116,7 +116,7 @@ sslkey = "server.key"
 	})
 
 	go taskPool.StartTask(func(ok task.TaskObj, res interface{}, err error) {
-		log.Println("after:", ok.Args(), "|", ok.String(), "                                                        ")
+		// log.Println("after:", ok.Args(), "|", ok.String(), "                                                        ")
 		// buf, err := ioutil.ReadFile(ok.String())
 		if err != nil {
 			color.New(color.FgBlue).Println(err)

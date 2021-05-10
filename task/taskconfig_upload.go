@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
 	"github.com/fatih/color"
 )
@@ -17,8 +16,8 @@ import (
 func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 	red := color.New(color.FgRed).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
-	yellow := color.New(color.FgYellow).SprintFunc()
-	log.Println(green("File Upload Endpoint Hit"))
+	// yellow := color.New(color.FgYellow).SprintFunc()
+	// log.Println(green("File Upload Endpoint Hit"))
 
 	// Parse our multipart form, 10 << 20 specifies a maximum
 	// upload of 1 GB files.
@@ -31,7 +30,7 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 	// fmt.Println(id, r.Form,r.Fo)
 	if v, ok := tconfig.depatch[id]; ok {
 		tconfig.depatch[id] = v + "-Finished"
-		log.Println("Finish:", utils.Green(id), " from : ", utils.Yellow(v))
+		// log.Println("Finish:", utils.Green(id), " from : ", utils.Yellow(v))
 	}
 	file, handler, err := r.FormFile(id)
 	if err != nil {
@@ -45,10 +44,11 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	} else {
-		log.Println("form include:", id)
+		// log.Println("form include:", id)
 	}
 	defer file.Close()
-	log.Println(green(fmt.Sprintf("Uploaded File: %s", handler.Filename), green(fmt.Sprintf("File Size: %d", handler.Size))), yellow(fmt.Sprintf("MIME Header: %+v", handler.Header)))
+	// log.Println(green(fmt.Sprintf("Uploaded File: %s", handler.Filename), green(fmt.Sprintf("File Size: %d", handler.Size))), yellow(fmt.Sprintf("MIME Header: %+v", handler.Header)))
+
 	// Create a temporary file within our temp-images directory that follows
 	// a particular naming pattern
 	tempFile := filepath.Join(tconfig.LogPath(), id+".log")
@@ -74,6 +74,11 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		/*
+			对于远程部署的任务返回，改变部署状态
+		*/
+		tconfig.DeployedSwitchState(id, "Finished")
+
 		// write this byte array to our temporary file
 		// tempFile.Write(fileBytes)
 		// return that we have successfully uploaded our file!
@@ -83,6 +88,11 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 			"log":   "Successfully Uploaded File\n",
 		})
 	} else {
+		/*
+			对于远程部署的任务返回，改变部署状态
+		*/
+		tconfig.DeployedSwitchState(id, "Finished")
+
 		jsonWrite(w, TData{
 			"state": "ok",
 			"log":   "File exists:" + tempFile,

@@ -158,7 +158,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					jsonWrite(w, reply)
 				}
 			case "config":
-				log.Println(utils.Green("try to config ....:", data))
+				// log.Println(utils.Green("try to config ....:", data))
 				if info := config.UpdateMyConfig(data); info != "" {
 					jsonWrite(w, TData{
 						"state": "ok",

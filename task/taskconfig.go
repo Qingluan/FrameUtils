@@ -24,9 +24,10 @@ type TaskConfig struct {
 	Schema     string   `json:"schema" config:"schema"`
 	SSLCert    string   `json:"sslcert" config:"sslcert"`
 	SSLKey     string   `json:"sslkey" config:"sslkey"`
-	state      map[string]string
-	depatch    map[string]string
-	procs      map[string]string
+	// state      map[string]string
+	depatch map[string]string
+	state   map[string]TaskState
+	procs   map[string]string
 	// 用来记录当前任务分配的服务器序号 Others[n] , n = (n + 1) % (len(Others))
 	taskDipatchCursor int
 	// 开启服务时初始的登陆密码，每次随机
@@ -38,7 +39,7 @@ func NewTaskConfig(fileName string) (t *TaskConfig) {
 	// defer
 	t = new(TaskConfig)
 	err := utils.Unmarshal(fileName, t)
-	t.state = make(map[string]string)
+	t.state = make(map[string]TaskState)
 	t.depatch = make(map[string]string)
 	t.procs = make(map[string]string)
 	t.LoadState()
@@ -55,14 +56,14 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 	t = new(TaskConfig)
 	if _, err := os.Stat(fileName); err != nil {
 		t = NewTaskConfigDefault("http://localhost:4099/task/v1/log")
-		t.state = make(map[string]string)
+		t.state = make(map[string]TaskState)
 		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
 		t.LoadState()
 
 	} else {
 		err := utils.Unmarshal(fileName, t)
-		t.state = make(map[string]string)
+		t.state = make(map[string]TaskState)
 		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
 		t.LoadState()
@@ -130,7 +131,11 @@ func (tconfig *TaskConfig) MakeSureTask(id string, runOrStop bool) {
 		if tconfig.state == nil {
 			log.Println("not init")
 		}
-		tconfig.state[id] = "running"
+		tconfig.state[id] = TaskState{
+			ID:             id,
+			State:          "Running",
+			DeployedServer: tconfig.MyIP() + ":" + tconfig.MyPort(),
+		}
 	} else {
 		delete(tconfig.state, id)
 	}
@@ -154,7 +159,7 @@ func NewTaskConfigDefault(logServer string) (t *TaskConfig) {
 		ReTry:     3,
 		Listen:    "0.0.0.0:4099",
 		Schema:    "http",
-		state:     make(map[string]string),
+		state:     make(map[string]TaskState),
 	}
 	return
 }
@@ -175,7 +180,7 @@ func DefaultTaskConfigJson() string {
 		ReTry:     3,
 		Listen:    ":4099",
 		Schema:    "http",
-		state:     make(map[string]string),
+		state:     make(map[string]TaskState),
 	}
 	b, _ := json.MarshalIndent(t, "", "    ")
 	return string(b)

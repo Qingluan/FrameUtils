@@ -45,7 +45,7 @@ func try2array(v interface{}) (e []string, b bool) {
 
 func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig = new(TaskConfig)
-	copyConfig.state = make(map[string]string)
+	copyConfig.state = make(map[string]TaskState)
 	copyConfig.depatch = make(map[string]string)
 	copyConfig.procs = make(map[string]string)
 	copyConfig.TaskNum = config.TaskNum

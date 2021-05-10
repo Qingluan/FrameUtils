@@ -42,7 +42,7 @@ type TEMPStruct struct {
 	TaskPanel       string
 	TaskCreateHTML  string
 	TaskSettingHTML string
-	Logs            []LogUI
+	Logs            []TaskState
 }
 type LogUI struct {
 	ID       string
@@ -227,17 +227,18 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 		RunningNum, _ := log["running"]
 		LogNum, _ := log["lognum"]
 		ErrNum, _ := log["errnum"]
-		if fs, err := ioutil.ReadDir(self.LogPath()); err == nil {
-			paths := []string{}
-			for _, f := range fs {
-				onePage.Logs = append(onePage.Logs, LogUI{
-					ID:       f.Name(),
-					ModiTime: f.ModTime().Local().String(),
-					Size:     fmt.Sprintf("%fMB", float64(f.Size())/float64(1024*1024)),
-				})
-				paths = append(paths, f.Name())
-			}
-		}
+		onePage.Logs = self.DeployStateFind("")
+		// if fs, err := ioutil.ReadDir(self.LogPath()); err == nil {
+		// 	paths := []string{}
+		// 	for _, f := range fs {
+		// 		onePage.Logs = append(onePage.Logs, LogUI{
+		// 			ID:       f.Name(),
+		// 			ModiTime: f.ModTime().Local().String(),
+		// 			Size:     fmt.Sprintf("%fMB", float64(f.Size())/float64(1024*1024)),
+		// 		})
+		// 		paths = append(paths, f.Name())
+		// 	}
+		// }
 
 		onePage.LogRoot = self.LogPath()
 		onePage.TaskNum = TaskNum.(string)
@@ -257,18 +258,19 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 		RunningNum, _ := log["running"]
 		LogNum, _ := log["lognum"]
 		ErrNum, _ := log["errnum"]
-		Logs := []LogUI{}
-		if fs, err := ioutil.ReadDir(self.LogPath()); err == nil {
-			paths := []string{}
-			for _, f := range fs {
-				Logs = append(Logs, LogUI{
-					ID:       f.Name(),
-					ModiTime: f.ModTime().Local().String(),
-					Size:     fmt.Sprintf("%fMB", float64(f.Size())/float64(1024*1024)),
-				})
-				paths = append(paths, f.Name())
-			}
-		}
+		Logs := self.DeployStateFind("")
+		// Logs := []LogUI{}
+		// if fs, err := ioutil.ReadDir(self.LogPath()); err == nil {
+		// 	paths := []string{}
+		// 	for _, f := range fs {
+		// 		Logs = append(Logs, LogUI{
+		// 			ID:       f.Name(),
+		// 			ModiTime: f.ModTime().Local().String(),
+		// 			Size:     fmt.Sprintf("%fMB", float64(f.Size())/float64(1024*1024)),
+		// 		})
+		// 		paths = append(paths, f.Name())
+		// 	}
+		// }
 		// stateBytes,_ := json.Marshal()
 		jsonWrite(w, TData{
 			"ip":         myip,

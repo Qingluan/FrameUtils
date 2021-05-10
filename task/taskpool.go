@@ -83,7 +83,10 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 			if task.callinok != nil {
 				go task.callinok(okObj)
 			}
+			// 任务完成改变状态
+			task.config.DeployedSwitchState(okObj.ID(), "Finished")
 			task.LogTo(okObj, after)
+
 		case errObj := <-task.ErrChannel:
 			if task.callinerr != nil {
 				go task.callinerr(errObj)
@@ -92,6 +95,9 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 				errObj.LogToLocal(task.config.LogPath())
 				task.WaitChannel <- errObj.Args()
 			} else {
+				// 任务失败改变状态
+				task.config.DeployedSwitchState(errObj.ID(), "Failed")
+
 				task.LogTo(errObj, after)
 			}
 		case <-tick.C:
@@ -107,14 +113,20 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 	}
 }
 
+// 发送结果到日志服务器
 func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, err error)) {
+
+	// 如果日志服务器地址和本地地址重合则不在发送日志
+	if strings.Contains(task.config.LogServer, task.config.MyIP()+":"+task.config.MyPort()) {
+		return
+	}
 	proxy := task.config.Proxy
 	logTo := ok.ToGo()
 	if logTo == "" {
 		logTo = task.config.LogServer
 	}
 	logToUrl := task.config.UrlApiLog(logTo)
-	log.Println("LogTo:", logToUrl, logTo)
+	// log.Println("LogTo:", logToUrl, logTo)
 	if res, err := Upload(ok.ID(), ok.String(), logToUrl, proxy); err != nil {
 		after(ok, res, err)
 	} else {
@@ -144,10 +156,14 @@ func (task *TaskPool) Patch(callTp, raw string) {
 	if call, ok := task.call[op]; ok {
 		task.RunningChannel <- 1
 		task.TaskCounter.Add(1)
+
+		id := NewID(raw)
+		task.config.DeploySaveState(op+"-"+id, "localhost", raw)
 		go func(raw string, waiter *sync.WaitGroup, taskConfigCopy *TaskConfig, run chan interface{}, okChan chan TaskObj, errChan chan ErrObj) {
 			id := NewID(raw)
 
 			args, kargs := utils.DecodeToOptions(raw)
+
 			if len(args) == 0 {
 				if kargs == nil {
 					log.Println(utils.Yellow("Start: ", id, " ", raw))
@@ -173,7 +189,7 @@ func (task *TaskPool) Patch(callTp, raw string) {
 			defer func() {
 				<-run
 				waiter.Done()
-				log.Println("Patched || ", utils.Green("Finish:", id))
+				log.Println(utils.Green("Finish:", id))
 			}()
 			// 对于几个特殊的call 函数特别调用，比如configCall 不会进入 okchannel
 			if obj, err := call(taskConfigCopy, args, kargs); err != nil {
@@ -241,12 +257,12 @@ func (task *TaskPool) DelayRetryPass(args ...string) {
 	DefaultTaskWaitChnnael <- args
 }
 
-func (task *TaskPool) State() (wait int, running int, errCount int) {
+func (task *TaskPool) TaskSystemState() (wait int, running int, errCount int) {
 	return len(task.WaitChannel), len(task.RunningChannel), len(task.ErrCounter)
 }
 
 func (task *TaskPool) ErrCount(errObj ErrObj) bool {
-	defer log.Println("[retry]:", utils.Yellow(errObj.ID(), " : ", task.ErrCounter[errObj.ID()]))
+	defer log.Println(utils.Red("[retry]:"), task.ErrCounter[errObj.ID()], utils.Yellow(errObj.ID(), " : "))
 	if c, ok := task.ErrCounter[errObj.ID()]; ok {
 		if c+1 < task.config.ReTry {
 			task.ErrCounter[errObj.ID()] = c + 1

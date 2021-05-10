@@ -67,6 +67,7 @@ func (config *TaskConfig) depatchTask(data TData) (reply TData, useNode string, 
 	// data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s:%s\"", config.MyIP(), config.MyPort())
 	reply, err = config.ForwardCustom(config.UrlApi(server), "push", data)
 	if id, ok := reply["id"]; ok {
+		config.DeploySaveState(reply["id"].(string), useNode, data["input"].(string))
 		config.depatch[id.(string)] = server + "-" + "Running"
 	}
 	return

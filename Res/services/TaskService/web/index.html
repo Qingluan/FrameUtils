@@ -224,6 +224,7 @@
 		  <thead>
 			<tr>
 			  <th>Task ID</th>
+			  <th>部署節點</th>
 			  <th>最后更改时间</th>
 			  <th>文件大小</th>
 			  <th>查看</th>
@@ -233,8 +234,9 @@
 		  	{{ range .Logs }}
 			<tr>
 			  <td>{{ .ID }}</td>
-			  <td>{{ .ModiTime }}</td>
-			  <td>{{ .Size }}</td>
+			  <td>{{ .DeployServer }}</td>
+			  <td>{{ .LogLast }}</td>
+			  <td>{{ .LogSize }}</td>
 			  <td><a href="#" onclick="return showDetail('{{ .ID }}')" >click</a></td>
 			</tr>
 			{{ end }}
