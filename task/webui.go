@@ -41,6 +41,7 @@ type TEMPStruct struct {
 	LogRoot         string
 	TaskPanel       string
 	TaskCreateHTML  string
+	Proxy           string
 	TaskSettingHTML string
 	Logs            []TaskState
 }
@@ -102,7 +103,7 @@ func WebAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 			data := TData{}
 			json.Unmarshal(body, &data)
-			if data["password"] == RandomLoginSession || data["password"] == "hallo" {
+			if data["password"] == RandomLoginSession || data["password"] == "?" {
 				cookie := http.Cookie{Name: "TaskUID", Value: RandomLoginSession, Path: "/", MaxAge: 3600}
 				http.SetCookie(w, &cookie)
 				log.Println("login ok:", utils.Green(r.RemoteAddr))
@@ -131,7 +132,7 @@ func WebAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 				data := TData{}
 				json.Unmarshal(body, &data)
-				if data["password"] == RandomLoginSession || data["password"] == "hallo" {
+				if data["password"] == RandomLoginSession || data["password"] == "?" {
 					cookie := http.Cookie{Name: "TaskUID", Value: RandomLoginSession, Path: "/", MaxAge: 3600}
 					http.SetCookie(w, &cookie)
 					log.Println("login ok:", utils.Green(r.RemoteAddr))
@@ -223,55 +224,33 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 		onePage.ServerIP = utils.GetLocalIP()
 		TaskNum, _ := log["task"]
 		onePage.ServerNum = fmt.Sprintf("%d", len(self.Others))
-		ReadyNum, _ := log["wait"]
+		// ReadyNum, _ := log["wait"]
 		RunningNum, _ := log["running"]
 		LogNum, _ := log["lognum"]
 		ErrNum, _ := log["errnum"]
 		onePage.Logs = self.DeployStateFind("")
-		// if fs, err := ioutil.ReadDir(self.LogPath()); err == nil {
-		// 	paths := []string{}
-		// 	for _, f := range fs {
-		// 		onePage.Logs = append(onePage.Logs, LogUI{
-		// 			ID:       f.Name(),
-		// 			ModiTime: f.ModTime().Local().String(),
-		// 			Size:     fmt.Sprintf("%fMB", float64(f.Size())/float64(1024*1024)),
-		// 		})
-		// 		paths = append(paths, f.Name())
-		// 	}
-		// }
 
 		onePage.LogRoot = self.LogPath()
 		onePage.TaskNum = TaskNum.(string)
-		onePage.ReadyNum = ReadyNum.(string)
+		// onePage.ReadyNum = ReadyNum.(string)
 		onePage.RunningNum = RunningNum.(string)
 		onePage.LogsNum = LogNum.(string)
 		onePage.ErrNum = ErrNum.(string)
-
-		t1.Execute(w, onePage)
-
+		onePage.Proxy = self.Proxy
+		err := t1.Execute(w, onePage)
+		if err != nil {
+			fmt.Println("Render err:", err)
+		}
 	} else if r.Method == "POST" {
 		log := self.GetMyState()
 		myip := utils.GetLocalIP()
 		TaskNum, _ := log["task"]
-		others := fmt.Sprintf("%d", len(self.Others))
+
 		ReadyNum, _ := log["wait"]
 		RunningNum, _ := log["running"]
 		LogNum, _ := log["lognum"]
 		ErrNum, _ := log["errnum"]
 		Logs := self.DeployStateFind("")
-		// Logs := []LogUI{}
-		// if fs, err := ioutil.ReadDir(self.LogPath()); err == nil {
-		// 	paths := []string{}
-		// 	for _, f := range fs {
-		// 		Logs = append(Logs, LogUI{
-		// 			ID:       f.Name(),
-		// 			ModiTime: f.ModTime().Local().String(),
-		// 			Size:     fmt.Sprintf("%fMB", float64(f.Size())/float64(1024*1024)),
-		// 		})
-		// 		paths = append(paths, f.Name())
-		// 	}
-		// }
-		// stateBytes,_ := json.Marshal()
 		jsonWrite(w, TData{
 			"ip":         myip,
 			"LogRoot":    self.LogPath(),
@@ -280,9 +259,10 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 			"RunningNum": RunningNum.(string),
 			"LogsNum":    LogNum.(string),
 			"ErrNum":     ErrNum.(string),
-			"Servers":    others,
+			"Servers":    self.Others,
 			"States":     self.state,
 			"Logs":       Logs,
+			"Proxy":      self.Proxy,
 		})
 
 	}

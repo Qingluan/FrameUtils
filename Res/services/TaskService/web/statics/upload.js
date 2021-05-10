@@ -111,7 +111,9 @@
                         var data = JSON.parse( ajax.responseText );
                         form.classList.add( data.state == 'ok' ? 'is-success' : 'is-error' );
                         if( !data.state ) errorMsg.textContent = data.error;
-                        $("#showModal").modal("hide")
+                        // 更新信息
+                        $("#showModal").modal("hide");
+                        StateUpdate();
                     }
                     else alert( 'Error. Please, contact the webmaster!' );
                 };

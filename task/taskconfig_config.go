@@ -117,12 +117,14 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 	if servers := utils.SplitByIgnoreQuote(allservers, ","); len(servers) > 0 {
 		var syncCounter sync.WaitGroup
 		iC := len(servers) - 1
-		// log.Println("All Server :", utils.Yellow(allservers))
+
 		delete(data, "others")
 		data["logTo"] = config.MyIP() + ":" + config.MyPort()
+
 		for i, s := range servers {
 			// if server != config.MyIP() {
 			syncCounter.Add(1)
+			log.Println("Sync Data:", utils.Yellow(data))
 			go func(i, iC int, server string, datai TData, w *sync.WaitGroup) {
 				defer w.Done()
 
@@ -152,6 +154,7 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 	ifsync := false
 	allserver := ""
+
 	info = fmt.Sprintf("config : %d", len(data))
 	if v, ok := try2str(data["others"]); ok {
 		log.Println("Found Other:", utils.Green(v))
@@ -165,6 +168,8 @@ func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 	}
 
 	if v, ok := try2str(data["proxy"]); ok {
+		info += "\nProxy:" + v
+		log.Println("Found Proxy:", utils.Green(v))
 		config.Proxy = v
 	}
 	if v, ok := try2int(data["try"]); ok {

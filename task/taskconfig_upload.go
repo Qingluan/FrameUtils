@@ -27,6 +27,7 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 	// the Header and the size of the file
 
 	id := r.FormValue("id")
+	state := r.FormValue("state")
 	// fmt.Println(id, r.Form,r.Fo)
 	if v, ok := tconfig.depatch[id]; ok {
 		tconfig.depatch[id] = v + "-Finished"
@@ -77,8 +78,11 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 		/*
 			对于远程部署的任务返回，改变部署状态
 		*/
-		tconfig.DeployedSwitchState(id, "Finished")
+		go func() {
+			tconfig.DeployedSwitchState(id, state)
+			tconfig.DeployedSaveLogState(id)
 
+		}()
 		// write this byte array to our temporary file
 		// tempFile.Write(fileBytes)
 		// return that we have successfully uploaded our file!
@@ -91,8 +95,11 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 		/*
 			对于远程部署的任务返回，改变部署状态
 		*/
-		tconfig.DeployedSwitchState(id, "Finished")
+		go func() {
 
+			tconfig.DeployedSwitchState(id, state)
+			tconfig.DeployedSaveLogState(id)
+		}()
 		jsonWrite(w, TData{
 			"state": "ok",
 			"log":   "File exists:" + tempFile,
@@ -100,15 +107,19 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Upload(id string, fileName string, target string, proxy string) (string, error) {
+func Upload(id, fileName, state, target, proxy string) (string, error) {
 	sess := jupyter.NewSession()
 	// var fi os.FileInfo
 	// var err error
 	// if fi, err = os.Stat(fileName); err != nil {
 	// 	return "", err
 	// }
+	if proxy != "" && IsLocalDomain(target) {
+		proxy = ""
+	}
 	if res, err := sess.Upload(target, fileName, id, map[string]string{
-		"id": id,
+		"id":    id,
+		"state": state,
 	}, false, proxy); err != nil {
 		return "", err
 	} else {

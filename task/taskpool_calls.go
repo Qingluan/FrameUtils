@@ -83,15 +83,22 @@ func CmdCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, err
 	return cmdObj, nil
 }
 
+/*
+	http 抓取網頁用
+
+*/
 func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, error) {
 	sess := jupyter.NewSession()
 	var res *jupyter.SmartResponse
 	var err error
-	// args, kargs := utils.DecodeToOptions(raw)
-	// fmt.Println("Raw:", raw, "\nargs:", args, "\nkargs:", kargs)
-	if !strings.HasPrefix(args[0], "http") {
-		args[0] = "http://" + args[0]
+
+	// 這個地方一定要保持原樣否則會讓原來的 NewID 失效
+	targetUrl := args[0]
+
+	if !strings.HasPrefix(targetUrl, "http") {
+		targetUrl = "http://" + targetUrl
 	}
+
 	obj := ObjHTTP{
 		raw:    utils.EncodeToRaw(args, kargs),
 		url:    strings.TrimSpace(args[0]),
@@ -110,7 +117,13 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 		delete(kargs, "proxy")
 		sess.SetProxyDialer(proxy)
 	} else {
-		proxy = nil
+		if tconfig.Proxy != "" && !IsLocalDomain(obj.url) {
+			proxy = merkur.NewProxyDialer(tconfig.Proxy)
+			log.Println("This Task Use Proxy:", utils.Magenta(tconfig.Proxy))
+			sess.SetProxyDialer(proxy)
+		} else {
+			proxy = nil
+		}
 	}
 
 	// 设置config 中任务的状态
@@ -124,16 +137,16 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 			if err != nil {
 				return obj, err
 			}
-			res, err = sess.Post(obj.url, data)
+			res, err = sess.Post(targetUrl, data)
 		case "json":
 			data := utils.BDict{}
 			err = json.Unmarshal([]byte(args[2]), &data)
 			if err != nil {
 				return obj, err
 			}
-			res, err = sess.Json(obj.url, data)
+			res, err = sess.Json(targetUrl, data)
 		default:
-			res, err = sess.Get(obj.url)
+			res, err = sess.Get(targetUrl)
 		}
 		if err != nil {
 			obj.err = err
@@ -141,7 +154,7 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 
 		}
 	} else {
-		if res, err = sess.Get(obj.url); err != nil {
+		if res, err = sess.Get(targetUrl); err != nil {
 			obj.err = err
 		}
 

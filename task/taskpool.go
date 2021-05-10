@@ -46,11 +46,12 @@ func NewTaskPool(config *TaskConfig) *TaskPool {
 */
 func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err error)) {
 	tick := time.NewTicker(15 * time.Second)
+	tickAutoSave := time.NewTicker(30)
 	task.SetRuntime("state", task.StateCall)
 	task.SetRuntime("http", HTTPCall)
 	task.SetRuntime("cmd", CmdCall)
 	task.SetRuntime("config", ConfigCall)
-
+	task.config.DeployedLoadStateFromLocal()
 	for {
 		select {
 		case args := <-task.WaitChannel:
@@ -85,23 +86,30 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 			}
 			// 任务完成改变状态
 			task.config.DeployedSwitchState(okObj.ID(), "Finished")
-			task.LogTo(okObj, after)
+			task.config.DeployedSaveLogState(okObj.ID())
+
+			task.LogTo(okObj, "Finished", after)
 
 		case errObj := <-task.ErrChannel:
 			if task.callinerr != nil {
 				go task.callinerr(errObj)
 			}
 			if task.ErrCount(errObj) {
-				errObj.LogToLocal(task.config.LogPath())
+				errObj.LogToLocal()
 				task.WaitChannel <- errObj.Args()
 			} else {
 				// 任务失败改变状态
 				task.config.DeployedSwitchState(errObj.ID(), "Failed")
+				task.config.DeployedSaveLogState(errObj.ID())
+				delete(task.ErrCounter, errObj.ID())
+				task.LogTo(errObj, "Failed", after)
 
-				task.LogTo(errObj, after)
 			}
 		case <-tick.C:
 			task.clearErrCounter()
+
+		case <-tickAutoSave.C:
+			task.config.DeployedSaveStateToLocal()
 		default:
 			if len(task.RunningChannel) >= task.config.TaskNum {
 				task.TaskCounter.Wait()
@@ -114,10 +122,11 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 }
 
 // 发送结果到日志服务器
-func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, err error)) {
+func (task *TaskPool) LogTo(ok TaskObj, state string, after func(ok TaskObj, res interface{}, err error)) {
 
 	// 如果日志服务器地址和本地地址重合则不在发送日志
 	if strings.Contains(task.config.LogServer, task.config.MyIP()+":"+task.config.MyPort()) {
+		log.Println(utils.Red("Skip Log : ", task.config.LogServer))
 		return
 	}
 	proxy := task.config.Proxy
@@ -126,8 +135,8 @@ func (task *TaskPool) LogTo(ok TaskObj, after func(ok TaskObj, res interface{}, 
 		logTo = task.config.LogServer
 	}
 	logToUrl := task.config.UrlApiLog(logTo)
-	// log.Println("LogTo:", logToUrl, logTo)
-	if res, err := Upload(ok.ID(), ok.String(), logToUrl, proxy); err != nil {
+	// log.Println(ok, " LogTo:", logToUrl)
+	if res, err := Upload(ok.ID(), ok.Path(), state, logToUrl, proxy); err != nil {
 		after(ok, res, err)
 	} else {
 		after(ok, res, err)
@@ -158,30 +167,33 @@ func (task *TaskPool) Patch(callTp, raw string) {
 		task.TaskCounter.Add(1)
 
 		id := NewID(raw)
-		task.config.DeploySaveState(op+"-"+id, "localhost", raw)
+		if op != "state" {
+			// log.Println("|", raw, "|")
+			task.config.DeploySaveState(op+"-"+id, "localhost", raw)
+		}
 		go func(raw string, waiter *sync.WaitGroup, taskConfigCopy *TaskConfig, run chan interface{}, okChan chan TaskObj, errChan chan ErrObj) {
 			id := NewID(raw)
 
 			args, kargs := utils.DecodeToOptions(raw)
 
-			if len(args) == 0 {
-				if kargs == nil {
-					log.Println(utils.Yellow("Start: ", id, " ", raw))
-				} else if len(kargs) == 0 {
-					log.Println(utils.Yellow("Start: ", id, " ", raw))
-				} else {
+			// if len(args) == 0 {
+			// 	if kargs == nil {
+			// 		log.Println(utils.Yellow("Start: ", id, " ", raw))
+			// 	} else if len(kargs) == 0 {
+			// 		log.Println(utils.Yellow("Start: ", id, " ", raw))
+			// 	} else {
 
-					log.Println(utils.Yellow("Start: ", id, " ", raw), "kargs:", kargs)
-				}
-			} else {
-				if kargs == nil {
-					log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
-				} else if len(kargs) == 0 {
-					log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
-				} else {
-					log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args, "kargs:", kargs)
-				}
-			}
+			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "kargs:", kargs)
+			// 	}
+			// } else {
+			// 	if kargs == nil {
+			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
+			// 	} else if len(kargs) == 0 {
+			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
+			// 	} else {
+			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args, "kargs:", kargs)
+			// 	}
+			// }
 			logTo := ""
 			if e, ok := kargs["logTo"]; ok {
 				logTo = e.(string)
@@ -189,12 +201,12 @@ func (task *TaskPool) Patch(callTp, raw string) {
 			defer func() {
 				<-run
 				waiter.Done()
-				log.Println(utils.Green("Finish:", id))
+				// log.Println(utils.Green("Finish:", id))
 			}()
 			// 对于几个特殊的call 函数特别调用，比如configCall 不会进入 okchannel
 			if obj, err := call(taskConfigCopy, args, kargs); err != nil {
 				log.Println(utils.UnderLine("Err:", id))
-				errChan <- ErrObj{err, op, raw, logTo}
+				errChan <- ErrObj{taskConfigCopy.LogPath(), err, op, raw, logTo}
 			} else if obj != nil {
 				// 从ID 获取类型
 				if strings.HasPrefix(obj.ID(), "config-") {
@@ -262,10 +274,11 @@ func (task *TaskPool) TaskSystemState() (wait int, running int, errCount int) {
 }
 
 func (task *TaskPool) ErrCount(errObj ErrObj) bool {
-	defer log.Println(utils.Red("[retry]:"), task.ErrCounter[errObj.ID()], utils.Yellow(errObj.ID(), " : "))
+	defer log.Println(utils.Red("[retry]:"), task.ErrCounter[errObj.ID()], "/", task.config.ReTry, utils.Yellow(errObj.ID(), " : "))
 	if c, ok := task.ErrCounter[errObj.ID()]; ok {
 		if c+1 < task.config.ReTry {
 			task.ErrCounter[errObj.ID()] = c + 1
+			task.config.DeployedSwitchState(errObj.ID(), fmt.Sprintf("retry:%d/%d", c+1, task.config.ReTry))
 		} else {
 			// delete(task.ErrCounter, errObj.ID())
 			return false
@@ -279,7 +292,7 @@ func (task *TaskPool) ErrCount(errObj ErrObj) bool {
 func (task *TaskPool) clearErrCounter() {
 	clear := []string{}
 	for k, v := range task.ErrCounter {
-		if v+1 >= task.config.ReTry {
+		if v >= task.config.ReTry {
 			clear = append(clear, k)
 		}
 	}

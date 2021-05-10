@@ -115,7 +115,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 							tp := args[1].(string)
 							objType := strings.TrimSpace(tp)
 
-							// fmt.Println("r:", args[0], "tp:", tp)
+							// fmt.Println("input:", input, "tp:", tp)
 							// fs := utils.SplitByIgnoreQuote(input, ",")
 							DefaultTaskWaitChnnael <- append([]string{objType}, input)
 							return TData{
@@ -158,7 +158,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					jsonWrite(w, reply)
 				}
 			case "config":
-				// log.Println(utils.Green("try to config ....:", data))
+				log.Println(utils.Green("try to config ....:", data))
 				if info := config.UpdateMyConfig(data); info != "" {
 					jsonWrite(w, TData{
 						"state": "ok",
@@ -205,6 +205,10 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 						res := []string{}
 						msg := ""
 						r := config.LogPath()
+
+						config.state = nil
+						config.state = make(map[string]TaskState)
+						config.DeployedSaveStateToLocal()
 						for _, f := range fs {
 							if strings.Contains(f.Name(), id) {
 								if err := os.Remove(filepath.Join(r, f.Name())); err != nil {
