@@ -54,8 +54,20 @@ func (config *TaskConfig) DeployedSwitchState(id string, state string) {
 	// defer fmt.Println("Switched")
 	if e, ok := config.state[id]; ok {
 		e.State = state
+		path := filepath.Join(config.LogPath(), e.ID) + ".log"
+		if state, err := os.Stat(path); err == nil {
+			e.LogSize = fmt.Sprintf("%fMB", float64(state.Size())/float64(1024*1024))
+			e.LogLast = state.ModTime().Local().String()
+		}
+		config.state[id] = e
+
 		config.state[id] = e
 		log.Println(utils.Magenta("[DeploySwitch] : ", id), " IN :", utils.Yellow(e.DeployedServer), " => ", utils.Green(state))
+		config.Websocket.MsgChanel <- TData{
+			"id":    id,
+			"tp":    "updatelog",
+			"value": e,
+		}
 	} else {
 
 		log.Println(" Switch Not found this task in TaskState:", utils.Red(id))
@@ -119,23 +131,23 @@ func (config *TaskConfig) DeployStateFind(key string) (states []TaskState) {
 /* DeploytSwitchState
 更新部署任务的日志文件状态
 */
-func (config *TaskConfig) DeployedSaveLogState(id string) {
-	config.lock.Lock()
-	defer config.lock.Unlock()
+// func (config *TaskConfig) DeployedSaveLogState(id string) {
+// 	config.lock.Lock()
+// 	defer config.lock.Unlock()
 
-	if e, ok := config.state[id]; ok {
-		// 獲取任務日志文件信息
-		path := filepath.Join(config.LogPath(), id) + ".log"
-		if state, err := os.Stat(path); err == nil {
-			e.LogSize = fmt.Sprintf("%fMB", float64(state.Size())/float64(1024*1024))
-			e.LogLast = state.ModTime().Local().String()
-		}
-		config.state[id] = e
-	} else {
-		log.Println("Not found this task in TaskState:", utils.Red(id))
+// 	if e, ok := config.state[id]; ok {
+// 		// 獲取任務日志文件信息
+// 		path := filepath.Join(config.LogPath(), id) + ".log"
+// 		if state, err := os.Stat(path); err == nil {
+// 			e.LogSize = fmt.Sprintf("%fMB", float64(state.Size())/float64(1024*1024))
+// 			e.LogLast = state.ModTime().Local().String()
+// 		}
+// 		config.state[id] = e
+// 	} else {
+// 		log.Println("Not found this task in TaskState:", utils.Red(id))
 
-	}
-}
+// 	}
+// }
 
 /*
 保存所有的state 到 ${LogPath}/STATE.json

@@ -232,12 +232,12 @@
 			  <th>狀態</th>
 			  <th>最后更改时间</th>
 			  <th>文件大小</th>
-			  <th>查看</th>
+			  <th>預覽結果</th>
 			</tr>
 		  </thead>
 		  <tbody>
 		  	{{ range .Logs }}
-			<tr id="{{ .ID }}">
+			<tr class="task-item" id="{{ .ID }}">
 			  <td>{{ .ID }}</td>
 			  <td>{{ .DeployedServer }}</td>
 			  
@@ -315,6 +315,22 @@
 		</div>
 	  </div>
 	</div>
+
+	<div class="modal  fade" id="infoPanel" tabindex="-1" role="dialog" aria-labelledby="infoPanelTitle" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+		  <div class="modal-content">
+			<div class="modal-header">
+			  <h5 class="modal-title" id="infoPanelTitle">任務詳情</h5>
+			  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			  </button>
+			</div>
+			<div id="info-body-detail" style="margin-left:10px">
+				
+			</div>
+		  </div>
+		</div>
+	  </div>
 	</main>
 	
     <script src="/statics/bootstrap.jquery.js"></script>
@@ -324,11 +340,11 @@
 	<script src="/statics/bootstrap.js"></script>
 	<script src="/statics/jquery.trans.js"></script>
     <script src="/statics/notify.js"></script>
-	
+	<script src="/statics/websocket.js"></script>
 	<!-- <script name="bootstrap-js">{{ .BJs }}</script> -->
 	<script src="/statics/upload.js"></script>
     <!-- <script name="upload.js">{{ .UploadJS }}</script> -->
-    <script src="/statics/sideJs.js"></script>
+    <script src="/statics/tasksystem.js"></script>
 	<!-- <script name="sidebars.js">{{ .SideJs }}</script> -->
 	</body>
 </html>

@@ -56,6 +56,7 @@ func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig.ReTry = config.ReTry
 	copyConfig.LogPathStr = config.LogPathStr
 	copyConfig.Schema = config.Schema
+	copyConfig.Websocket = config.Websocket
 	for k, v := range config.state {
 		copyConfig.state[k] = v
 	}

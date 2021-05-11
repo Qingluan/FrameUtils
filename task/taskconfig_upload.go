@@ -80,7 +80,7 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 		*/
 		go func() {
 			tconfig.DeployedSwitchState(id, state)
-			tconfig.DeployedSaveLogState(id)
+			// tconfig.DeployedSaveLogState(id)
 
 		}()
 		// write this byte array to our temporary file
@@ -98,7 +98,7 @@ func (tconfig *TaskConfig) uploadFile(w http.ResponseWriter, r *http.Request) {
 		go func() {
 
 			tconfig.DeployedSwitchState(id, state)
-			tconfig.DeployedSaveLogState(id)
+			// tconfig.DeployedSaveLogState(id)
 		}()
 		jsonWrite(w, TData{
 			"state": "ok",

@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/Qingluan/FrameUtils/utils"
+	"github.com/Qingluan/FrameUtils/web"
 	"github.com/fatih/color"
 )
 
@@ -32,7 +33,9 @@ type TaskConfig struct {
 	taskDipatchCursor int
 	// 开启服务时初始的登陆密码，每次随机
 	RandomLoginSession string
-	lock               sync.RWMutex
+	// websocket 控制
+	Websocket *web.Websocket
+	lock      sync.RWMutex
 }
 
 func NewTaskConfig(fileName string) (t *TaskConfig) {

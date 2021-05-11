@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Qingluan/FrameUtils/utils"
+	"github.com/Qingluan/FrameUtils/web"
 )
 
 type TaskPool struct {
@@ -46,11 +47,17 @@ func NewTaskPool(config *TaskConfig) *TaskPool {
 */
 func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err error)) {
 	tick := time.NewTicker(15 * time.Second)
-	tickAutoSave := time.NewTicker(30)
+	tickAutoSave := time.NewTicker(30 * time.Second)
 	task.SetRuntime("state", task.StateCall)
 	task.SetRuntime("http", HTTPCall)
 	task.SetRuntime("cmd", CmdCall)
 	task.SetRuntime("config", ConfigCall)
+
+	// 這裏 增加 websocket 插件
+	task.config.Websocket = web.NewWebSocket("/task/v1/websocket")
+	task.config.Websocket.Regist("hello", func(data map[string]interface{}) (id, tp, value string) {
+		return "hello", "hello", "connected"
+	})
 	task.config.DeployedLoadStateFromLocal()
 	for {
 		select {
@@ -86,7 +93,7 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 			}
 			// 任务完成改变状态
 			task.config.DeployedSwitchState(okObj.ID(), "Finished")
-			task.config.DeployedSaveLogState(okObj.ID())
+			// task.config.DeployedSaveLogState(okObj.ID())
 
 			task.LogTo(okObj, "Finished", after)
 
@@ -100,11 +107,14 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 			} else {
 				// 任务失败改变状态
 				task.config.DeployedSwitchState(errObj.ID(), "Failed")
-				task.config.DeployedSaveLogState(errObj.ID())
+				// task.config.DeployedSaveLogState(errObj.ID())
 				delete(task.ErrCounter, errObj.ID())
 				task.LogTo(errObj, "Failed", after)
 
 			}
+		case broadMsg := <-task.config.Websocket.MsgChanel:
+
+			go task.config.Websocket.Broadcast(broadMsg)
 		case <-tick.C:
 			task.clearErrCounter()
 
@@ -176,24 +186,6 @@ func (task *TaskPool) Patch(callTp, raw string) {
 
 			args, kargs := utils.DecodeToOptions(raw)
 
-			// if len(args) == 0 {
-			// 	if kargs == nil {
-			// 		log.Println(utils.Yellow("Start: ", id, " ", raw))
-			// 	} else if len(kargs) == 0 {
-			// 		log.Println(utils.Yellow("Start: ", id, " ", raw))
-			// 	} else {
-
-			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "kargs:", kargs)
-			// 	}
-			// } else {
-			// 	if kargs == nil {
-			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
-			// 	} else if len(kargs) == 0 {
-			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args)
-			// 	} else {
-			// 		log.Println(utils.Yellow("Start: ", id, " ", raw), "args:", args, "kargs:", kargs)
-			// 	}
-			// }
 			logTo := ""
 			if e, ok := kargs["logTo"]; ok {
 				logTo = e.(string)

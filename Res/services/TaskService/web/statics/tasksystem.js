@@ -5,15 +5,18 @@
     tooltipTriggerList.forEach(function (tooltipTriggerEl) {
       new bootstrap.Tooltip(tooltipTriggerEl)
     })
-  })()
+})()
+
+var websocket = new MyWebSocket("/task/v1/websocket")
+
 function LoadJS(id,content, location){
-if ($("#"+id).length == 0){
-    var script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.text = content;
-    script.id = id;
-    location.appendChild(script);
-}
+    if ($("#"+id).length == 0){
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.text = content;
+        script.id = id;
+        location.appendChild(script);
+    }
 }
 
 
@@ -81,23 +84,28 @@ function UpdateOneLineLog(log ){
             <td>${log.state}</td>
             <td>${log.log_last}</td>
             <td>${log.log_size}</td>
-            <td><a href="#" onclick="return showDetail('${log.id}')" >查看详细</a></td>
+            <td><a href="#" onclick="return showDetail('${log.id}')" >預覽結果</a></td>
     `
     }else{
         var tr = document.createElement("tr");
         tr.id = log.id
+        tr.className = "task-item"
         tr.innerHTML = `
             <td>${log.id}</td>
             <td>${log.deployed_server}</td>
             <td>${log.state}</td>
             <td>${log.log_last}</td>
             <td>${log.log_size}</td>
-            <td><a href="#" onclick="return showDetail('${log.id}')" >查看详细</a></td>
+            <td><a href="#" onclick="return showDetail('${log.id}')" >預覽結果</a></td>
     `
         $("#task-logs>tbody")[0].appendChild(tr);
     }
-    
 }
+
+websocket.AddCallback("updatelog",function(data){
+    UpdateOneLineLog(data.value)
+})
+
 
 function StateUpdate(){
     $.post("/task/v1/", JSON.stringify(),function(data){
@@ -188,10 +196,12 @@ $("#taskSubmit").click(function(){
     },data =>{
         notifymsg(data,true)
         $("#showModalForm").modal("hide");
-        StateUpdate();
     })
 })
 
-var ticker = setInterval(() => {
-    StateUpdate();
-}, 5000);
+
+
+
+$(".task-item").click(function(){
+    console.log(this.id);
+})

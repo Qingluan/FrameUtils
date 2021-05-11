@@ -54,6 +54,9 @@ type LogUI struct {
 var (
 	RandomLoginSession = GenSession()
 	l                  = sync.Mutex{}
+	// websocketHandler   = websocket.Upgrader{}
+	// GlobalChannels = map[string]*websocket.Conn{}
+	// RegistedAction = map[string]func(TData, *websocket.Conn){}
 )
 
 func GenSession() string {
@@ -185,6 +188,7 @@ func (self *TaskConfig) BuildWebInitialization() (err error) {
 	http.Handle("/statics/", http.StripPrefix("/statics/", http.FileServer(http.Dir(rootDir))))
 	http.HandleFunc("/task/v1/login", WebAuthLogin)
 	http.HandleFunc("/task/v1/logout", WebAuthLogout)
+
 	log.Println("LogToPath:", utils.Yellow(self.LogPath()))
 	log.Println("Password: ", utils.Red(RandomLoginSession))
 
