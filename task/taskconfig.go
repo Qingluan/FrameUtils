@@ -25,6 +25,7 @@ type TaskConfig struct {
 	Schema     string   `json:"schema" config:"schema"`
 	SSLCert    string   `json:"sslcert" config:"sslcert"`
 	SSLKey     string   `json:"sslkey" config:"sslkey"`
+	Timeout    int      `json:"timeout" config:"timeout"`
 	// state      map[string]string
 	depatch map[string]string
 	state   map[string]TaskState
@@ -62,6 +63,9 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 		t.state = make(map[string]TaskState)
 		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
+		if t.Timeout == 0 {
+			t.Timeout = 10
+		}
 		t.LoadState()
 
 	} else {
@@ -69,6 +73,9 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 		t.state = make(map[string]TaskState)
 		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
+		if t.Timeout == 0 {
+			t.Timeout = 10
+		}
 		t.LoadState()
 		if t.Schema == "" {
 
@@ -159,7 +166,7 @@ func NewTaskConfigDefault(logServer string) (t *TaskConfig) {
 		LogServer: logServer,
 		Others:    []string{},
 		Proxy:     "",
-		ReTry:     3,
+		ReTry:     2,
 		Listen:    "0.0.0.0:4099",
 		Schema:    "http",
 		state:     make(map[string]TaskState),
@@ -172,7 +179,7 @@ TaskNum:   100,
 LogServer: "http://localhost:8084/log",
 Others:    []string{},
 Proxy:     "",
-ReTry:     3,
+ReTry:     2,
 */
 func DefaultTaskConfigJson() string {
 	t := &TaskConfig{
@@ -180,7 +187,7 @@ func DefaultTaskConfigJson() string {
 		LogServer: "http://localhost:8084/task/v1/log",
 		Others:    []string{},
 		Proxy:     "",
-		ReTry:     3,
+		ReTry:     2,
 		Listen:    ":4099",
 		Schema:    "http",
 		state:     make(map[string]TaskState),

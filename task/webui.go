@@ -246,28 +246,56 @@ func (self *TaskConfig) SimeplUI(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Render err:", err)
 		}
 	} else if r.Method == "POST" {
-		log := self.GetMyState()
-		myip := utils.GetLocalIP()
-		TaskNum, _ := log["task"]
+		tdata := make(TData)
 
-		ReadyNum, _ := log["wait"]
-		RunningNum, _ := log["running"]
-		LogNum, _ := log["lognum"]
-		ErrNum, _ := log["errnum"]
-		Logs := self.DeployStateFind("")
-		jsonWrite(w, TData{
-			"ip":         myip,
-			"LogRoot":    self.LogPath(),
-			"TaskNum":    TaskNum.(string),
-			"ReadyNum":   ReadyNum.(string),
-			"RunningNum": RunningNum.(string),
-			"LogsNum":    LogNum.(string),
-			"ErrNum":     ErrNum.(string),
-			"Servers":    self.Others,
-			"States":     self.state,
-			"Logs":       Logs,
-			"Proxy":      self.Proxy,
-		})
+		if buf, err := ioutil.ReadAll(r.Body); err == nil {
+			json.Unmarshal(buf, &tdata)
+		}
+
+		if op, ok := tdata["oper"]; ok {
+			if op == "getstate" {
+				if id, ok := tdata["id"]; ok {
+					if state, ok := self.DeployedTaskGet(id.(string)); ok {
+						if h, e := state.HTML(); e != nil {
+
+							jsonWrite(w, TData{
+								"html": "",
+								"err":  e.Error(),
+							})
+						} else {
+
+							jsonWrite(w, TData{
+								"html": h,
+								// "err":  "",
+							})
+						}
+					}
+				}
+			}
+		} else {
+			log := self.GetMyState()
+			myip := utils.GetLocalIP()
+			TaskNum, _ := log["task"]
+			ReadyNum, _ := log["wait"]
+			RunningNum, _ := log["running"]
+			LogNum, _ := log["lognum"]
+			ErrNum, _ := log["errnum"]
+			Logs := self.DeployStateFind("")
+			jsonWrite(w, TData{
+				"ip":         myip,
+				"LogRoot":    self.LogPath(),
+				"TaskNum":    TaskNum.(string),
+				"ReadyNum":   ReadyNum.(string),
+				"RunningNum": RunningNum.(string),
+				"LogsNum":    LogNum.(string),
+				"ErrNum":     ErrNum.(string),
+				"Servers":    self.Others,
+				"States":     self.state,
+				"Logs":       Logs,
+				"Proxy":      self.Proxy,
+			})
+
+		}
 
 	}
 }

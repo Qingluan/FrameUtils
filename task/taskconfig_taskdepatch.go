@@ -126,6 +126,10 @@ func (config *TaskConfig) DealWithUploadFile(w http.ResponseWriter, h *http.Requ
 				waitTaskLines = append(waitTaskLines, "http,"+lineStr)
 			} else if strings.HasPrefix(lineStr, "tcp://") {
 				fmt.Println(utils.Blue("[tcp]", lineStr))
+				waitTaskLines = append(waitTaskLines, "tcp,"+lineStr)
+			} else if strings.HasPrefix(lineStr, "tcp,") {
+				fmt.Println(utils.Blue("[tcp]", lineStr))
+				waitTaskLines = append(waitTaskLines, lineStr)
 			} else if strings.HasPrefix(lineStr, "cmd,") {
 				fmt.Println(utils.Yellow("[cmd]", lineStr))
 				waitTaskLines = append(waitTaskLines, lineStr)

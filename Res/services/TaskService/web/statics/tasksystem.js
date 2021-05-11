@@ -27,6 +27,16 @@ function api(data,after){
         after(data);
     })
 }
+
+function webapi(data,after){
+    $.post("/task/v1/", JSON.stringify(data),function(data){
+        console.log(data);
+        var data = JSON.parse(data);
+        after(data);
+    })
+}
+
+
 function setPopupContent(content){
     $("#modal-body-detail")[0].innerHTML = "<iframe id=\"detailFrame\"  width=\"750\" height=\"600\" frameborder=\"no\" border=\"0\"></iframe>";
     $("#detailFrame").contents().find("body").append("<pre>" + content +"</pre>")
@@ -79,7 +89,7 @@ function UpdateOneLineLog(log ){
     if (tr.length > 0){
         console.log("Update:",log.state,log.id);
         tr[0].innerHTML = `
-            <td>${log.id}</td>
+            <td class="task-id" id="${log.id}">${log.id}</td>      
             <td>${log.deployed_server}</td>
             <td>${log.state}</td>
             <td>${log.log_last}</td>
@@ -91,7 +101,7 @@ function UpdateOneLineLog(log ){
         tr.id = log.id
         tr.className = "task-item"
         tr.innerHTML = `
-            <td>${log.id}</td>
+            <td class="task-id" id="${log.id}">${log.id}</td>      
             <td>${log.deployed_server}</td>
             <td>${log.state}</td>
             <td>${log.log_last}</td>
@@ -173,10 +183,12 @@ ip: "192.168.1.180"
 $("#settingSubmit").click(function(){
     var vproxy = $("#settingProxy").val()
     var vothers = $("#settingOthers").val().split("\n")
+    var vtry = $("#settingTryNum").val();
     console.log(vothers.join(","),vproxy)
     api({
         oper:"config",
         proxy:vproxy,
+        try:vtry,
         others:vothers,
     },data =>{
         data["timeout"] = 10000
@@ -202,6 +214,17 @@ $("#taskSubmit").click(function(){
 
 
 
-$(".task-item").click(function(){
+$(".task-item>.task-id").click(function(){
     console.log(this.id);
+    webapi({
+        oper:"getstate",
+        id:this.id
+    },function(data){
+        if (data.err == null){
+            $("#info-body-detail")[0].innerHTML = data.html;
+            $("#infoPanel").modal();
+        }else{
+            notifymsg(data.err, true)
+        }
+    })
 })

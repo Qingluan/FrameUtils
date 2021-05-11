@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
+	"github.com/Qingluan/FrameUtils/asset"
 	"github.com/Qingluan/FrameUtils/utils"
 )
 
@@ -215,4 +218,16 @@ func (config *TaskConfig) DeployedLoadStateFromLocal() {
 		}
 	}
 
+}
+
+func (state TaskState) HTML() (string, error) {
+	cardtemp, _ := asset.Asset("Res/services/TaskService/web/card.html")
+	temp, _ := template.New("card").Parse(string(cardtemp))
+	buffer := bytes.NewBuffer([]byte{})
+	err := temp.Execute(buffer, state)
+	if err != nil {
+		return "", err
+	}
+
+	return buffer.String(), nil
 }

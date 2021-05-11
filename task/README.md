@@ -13,6 +13,20 @@
 
 #### Push 部署任务
 
+##### 单行string 格式
+
+> example
+    
+    http:   
+        http, https://www.baidu.com
+        https://www.baidu.com
+        http, www.baidu.com
+    cmd:
+        cmd , ls -lha /tmp && sleep 8 && ls /tmp
+    
+      
+##### json 格式
+
  1. 带有encoding字段的
     多为多个任务打包
 

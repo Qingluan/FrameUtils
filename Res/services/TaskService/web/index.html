@@ -8,7 +8,7 @@
 		<meta name="generator" content="task-service">
 		<title>🌏🐱猫猫能有什么坏心眼呢</title>
         
-        <link rel="stylesheet" href="/statics/sidecss.css">
+        <link rel="stylesheet" href="/statics/system.css">
 		<link rel="stylesheet" href="/statics/notify.css">
 		<!-- <style name="sidebars" >{{ .SideCss }}</style> -->
 		
@@ -238,13 +238,13 @@
 		  <tbody>
 		  	{{ range .Logs }}
 			<tr class="task-item" id="{{ .ID }}">
-			  <td>{{ .ID }}</td>
-			  <td>{{ .DeployedServer }}</td>
+			  <td class="task-id" id="{{ .ID }}">{{ .ID }}</td>
+			  <td class="task-server" >{{ .DeployedServer }}</td>
 			  
-			  <td>{{ .State }}</td>
+			  <td >{{ .State }}</td>
 			  <td>{{ .LogLast }}</td>
 			  <td>{{ .LogSize }}</td>
-			  <td><a href="#" onclick="return showDetail('{{ .ID }}')" >click</a></td>
+			  <td><a href="#" onclick="return showDetail('{{ .ID }}')" >预览结果</a></td>
 			</tr>
 			{{ end }}
 		  </tbody>

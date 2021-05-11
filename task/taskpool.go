@@ -51,6 +51,7 @@ func (task *TaskPool) StartTask(after func(ok TaskObj, res interface{}, err erro
 	task.SetRuntime("state", task.StateCall)
 	task.SetRuntime("http", HTTPCall)
 	task.SetRuntime("cmd", CmdCall)
+	task.SetRuntime("tcp", TCPCall)
 	task.SetRuntime("config", ConfigCall)
 
 	// 這裏 增加 websocket 插件
