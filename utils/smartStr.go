@@ -154,6 +154,27 @@ func (any *Any) String() string {
 			out = strings.Replace(out, ac.key, ac.datas, 1)
 		}
 	}
+
+	return out
+}
+func (any *Any) UnEscape() string {
+	out := any.String()
+
+	if strings.Contains(out, "\\n") {
+		out = strings.ReplaceAll(out, "\\n", "\n")
+	}
+
+	if strings.Contains(out, "\\r") {
+		out = strings.ReplaceAll(out, "\\r", "\r")
+	}
+
+	if strings.Contains(out, "\\t") {
+		out = strings.ReplaceAll(out, "\\t", "\t")
+	}
+
+	if strings.HasPrefix(out, "\"") && strings.HasSuffix(out, "\"") {
+		out = out[1 : len(out)-1]
+	}
 	return out
 }
 
@@ -193,6 +214,12 @@ func (any *Any) SplitBy(reStr interface{}) (a []string) {
 
 	return
 }
+
+// func (any *Any) Check(keys map[string]interface{}) error{
+// 	for _,ac := range any.acs{
+// 		if ac.key
+// 	}
+// }
 
 /*Collect method
 can use some build-in regex pattern

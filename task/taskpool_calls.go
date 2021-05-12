@@ -67,76 +67,65 @@ func TCPCall(config *TaskConfig, args []string, kargs utils.Dict) (TaskObj, erro
 		return nil, err
 	}
 	defer c.Close()
+
+	// log.Println("Timeout:", config.Timeout, kargs)
+	/*
+		发送数据 并 将结果存储在本地文件
+		如果时第一个pay 则只读不写
+	*/
+	writeAndSaveResult := func(obj TaskObj, input string, buffer *bytes.Buffer, no int) (reply []byte, n int, err error) {
+		c.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+
+		reply = make([]byte, 4096)
+		if no != 0 {
+			// str := buffer.String()
+			// fmt.Println(no, "==>", str)
+			// fmt.Println(no,"wr")
+			buf := make([]byte, 4096)
+			io.CopyBuffer(c, buffer, buf)
+			// c.Write([]byte(str))
+		}
+		c.SetReadDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
+		if n, err = c.Read(reply); err != nil {
+			// fmt.Println(no, "<==", err, reply[:n])
+			return
+		} else {
+			// fmt.Println(no, "<==", string(reply[:n]))
+			// _to_end(obj.Path(), []byte())
+			_to_end(obj.Path(), []byte("<-------\n"+string(reply[:n])))
+		}
+		return
+	}
+
 	lastReply := make([]byte, 4096)
 	lastReplyLen := 0
-	// outfile, err := os.OpenFile(obj.Path(), os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
-	// outfile.WriteString(fmt.Sprintf("\n====================== %s ======================\n", time.Now().Local().String()))
-	// outfile.WriteString(fmt.Sprintf("%s\n--------------------- recv -------------------\n", strings.Join(args[1:], "\n")))
-
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer outfile.Close()
-	// buf := make([]byte, 4096)
-	// go io.CopyBuffer(outfile, c, buf)
 	for no, pay := range args[1:] {
 
-		c.SetWriteDeadline(time.Now().Add(time.Duration(config.Timeout) * time.Second))
-		buf := make([]byte, 4096)
 		if strings.Contains(pay, ":") {
 			if no == 0 {
-				lastReply = make([]byte, 4096)
-				if lastReplyLen, err = c.Read(lastReply); err != nil {
+				lastReply, lastReplyLen, err = writeAndSaveResult(obj, pay, nil, no)
+				if err != nil {
 					return nil, err
-				} else {
-					// _to_end(obj.Path(), []byte("<-------"))
-					_to_end(obj.Path(), []byte("<-------\n"+string(lastReply[:lastReplyLen])))
 				}
 			}
 			fs := utils.SplitByIgnoreQuote(pay, ":")
-			cond := fs[0]
+			cond := strings.TrimSpace(fs[0])
 			pay = fs[1]
-			if !bytes.Contains(lastReply, []byte(cond)) {
+
+			if !bytes.Contains(lastReply[:lastReplyLen], []byte(cond)) {
 				log.Println("[tcp]:", "not include:", utils.Yellow(cond))
 				_to_end(obj.Path(), []byte("not include:"+cond))
 				break
 			}
 		}
 
-		payloadbuf, err := base64.StdEncoding.DecodeString(pay)
+		buffer := payloadSmartEncode(pay, kargs)
 
+		lastReply, lastReplyLen, err = writeAndSaveResult(obj, pay, buffer, no+1)
 		if err != nil {
-			buffer := bytes.NewBuffer([]byte(pay))
-
-			_to_end(obj.Path(), []byte("------->\n"+pay))
-
-			io.CopyBuffer(c, buffer, buf)
-			lastReply = make([]byte, 4096)
-			if lastReplyLen, err = c.Read(lastReply); err != nil {
-				return nil, err
-			} else {
-				// _to_end(obj.Path(), []byte())
-				_to_end(obj.Path(), []byte("<-------\n"+string(lastReply[:lastReplyLen])))
-			}
-		} else {
-			log.Println("[tcp] base64:", len(payloadbuf))
-			buffer := bytes.NewBuffer(payloadbuf)
-
-			// _to_end(obj.Path(), []byte("------->"))
-			_to_end(obj.Path(), []byte("------->\n"+string(payloadbuf)))
-			io.CopyBuffer(c, buffer, buf)
-			lastReply = make([]byte, 4096)
-			if lastReplyLen, err = c.Read(lastReply); err != nil {
-				return nil, err
-			} else {
-				// _to_end(obj.Path(), []byte("<-------"))
-				_to_end(obj.Path(), []byte("<-------\n"+string(lastReply[:lastReplyLen])))
-			}
-
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
+
 	}
 	return obj, err
 
@@ -317,4 +306,28 @@ func ConfigCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, 
 		}
 	}
 	return NewBaseObj(tconfig, raw, "", "config"), nil
+}
+
+/*
+	1. 尝试进行BASE64解密
+
+	2. 判断字符串中是否存在 ${} 等特殊符号，存在则试图从 kargs 填充
+*/
+func payloadSmartEncode(payload string, kargs map[string]interface{}) *bytes.Buffer {
+	payload = strings.TrimSpace(payload)
+	if !strings.Contains(payload, " ") && len(payload)%4 == 0 {
+		if payloadbuf, err := base64.StdEncoding.DecodeString(payload); err != nil {
+			payload = string(payloadbuf)
+		}
+	}
+	var buffer *bytes.Buffer
+	if len(kargs) > 0 {
+		str := utils.Str(payload).Format(kargs).UnEscape()
+		// log.Println("Render : ", utils.BGreen(str))
+		buffer = bytes.NewBuffer([]byte(str))
+	} else {
+		// log.Println("Render : ", utils.BGreen(payload))
+		buffer = bytes.NewBuffer([]byte(payload))
+	}
+	return buffer
 }

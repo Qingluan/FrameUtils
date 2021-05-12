@@ -46,6 +46,9 @@ func NewTaskConfig(fileName string) (t *TaskConfig) {
 	t.state = make(map[string]TaskState)
 	t.depatch = make(map[string]string)
 	t.procs = make(map[string]string)
+	if t.Timeout == 0 {
+		t.Timeout = 10
+	}
 	t.LoadState()
 	log.Println("Listen:", t.Listen)
 	if err != nil {

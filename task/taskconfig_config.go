@@ -57,6 +57,7 @@ func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig.LogPathStr = config.LogPathStr
 	copyConfig.Schema = config.Schema
 	copyConfig.Websocket = config.Websocket
+	copyConfig.Timeout = config.Timeout
 	for k, v := range config.state {
 		copyConfig.state[k] = v
 	}
