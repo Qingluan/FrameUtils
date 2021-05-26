@@ -78,13 +78,12 @@
             </symbol>
           </svg>
 
-        <div class="body" style="margin-top: 30%;">
+        
         {{ block "body" . }}
-              
-          </div>
+        <div class="body" style="margin-top: 30%;">      
+        </div>
           <p>Null</p>
         {{ end }}
-        <div class="body">
           
         {{ block "baseJs" . }}
         <script src="/statics/bootstrap.jquery.js"></script>
