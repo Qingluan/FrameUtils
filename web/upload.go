@@ -69,7 +69,7 @@ func (u *WebUpload) BuildUploadFunc(call func(w http.ResponseWriter, id, filePat
 			}
 			io.Copy(fp, file)
 		}
-		cookie := http.Cookie{Name: "session-id", Value: sessId, Path: "/", MaxAge: -1}
+		cookie := http.Cookie{Name: "session-id", Value: sessId, Path: "/", MaxAge: -1, Secure: false}
 		http.SetCookie(w, &cookie)
 		if call != nil {
 
