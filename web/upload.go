@@ -69,7 +69,7 @@ func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
 			io.Copy(fp, file)
 		}
 		call(sessId, tempFile)
-		w.Write([]byte("upload ok"))
+		w.Write([]byte("{\"msg\":\"upload ok\"}"))
 	}
 	http.HandleFunc(u.Action, uploadFile)
 }
