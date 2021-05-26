@@ -54,8 +54,7 @@ func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
 		sessId := utils.NewSessionID()
 		u.Session[sessId] = tempFile
 		// w.WriteHeader(201)
-		cookie := http.Cookie{Name: "session-id", Value: sessId, Path: "/", MaxAge: -1}
-		http.SetCookie(w, &cookie)
+
 		// w.Header().Set("session-id", sessId)
 
 		if _, err := os.Stat(tempFile); err != nil {
@@ -69,8 +68,15 @@ func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
 			}
 			io.Copy(fp, file)
 		}
-		call(sessId, tempFile)
-		w.Write([]byte("{\"msg\":\"upload ok\"}"))
+		cookie := http.Cookie{Name: "session-id", Value: sessId, Path: "/", MaxAge: -1}
+		http.SetCookie(w, &cookie)
+		if call != nil {
+
+			call(sessId, tempFile)
+
+		} else {
+			w.Write([]byte("{\"msg\":\"upload ok\", \"state\":\"ok\"}"))
+		}
 	}
 	http.HandleFunc(u.Action, uploadFile)
 }
