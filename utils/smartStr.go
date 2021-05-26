@@ -44,6 +44,14 @@ func (ac *Ac) String() string {
 	return ac.key
 }
 
+func (ac *Ac) ValueStr() string {
+	return ac.datas
+}
+
+func (ac *Ac) ValueInt() int {
+	return ac.datai
+}
+
 // ArrayContains : if array str contains key , will return true
 func ArrayContains(arrs []string, key string) bool {
 	for _, v := range arrs {
