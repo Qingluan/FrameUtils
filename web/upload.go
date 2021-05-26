@@ -52,8 +52,10 @@ func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
 		tempFile := filepath.Join(tmpDir, "Res", "templates", "statics", handler.Filename)
 		sessId := utils.NewSessionID()
 		u.Session[sessId] = tempFile
-		w.WriteHeader(201)
-		w.Header().Set("session-id", sessId)
+		// w.WriteHeader(201)
+		cookie := http.Cookie{Name: "session-id", Value: sessId, Path: "/", MaxAge: -1}
+		http.SetCookie(w, &cookie)
+		// w.Header().Set("session-id", sessId)
 
 		if _, err := os.Stat(tempFile); err != nil {
 			if err != nil {
