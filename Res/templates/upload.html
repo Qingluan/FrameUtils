@@ -308,6 +308,7 @@
                     form.classList.remove( 'is-uploading' );
                     if( ajax.status >= 200 && ajax.status < 400 )
                     {
+                        console.log(ajax.responseText)
                         var data = JSON.parse( ajax.responseText );
                         form.classList.add( data.state == 'ok' ? 'is-success' : 'is-error' );
                         if( !data.state ) errorMsg.textContent = data.error;

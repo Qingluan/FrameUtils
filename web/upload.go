@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -75,7 +76,11 @@ func (u *WebUpload) BuildUploadFunc(call func(w http.ResponseWriter, id, filePat
 			call(w, sessId, tempFile)
 
 		} else {
-			w.Write([]byte("{\"msg\":\"upload ok\", \"state\":\"ok\"}"))
+			data, _ := json.Marshal(map[string]string{
+				"state": "ok",
+				"msg":   "ok",
+			})
+			w.Write(data)
 		}
 	}
 	http.HandleFunc(u.Action, uploadFile)
