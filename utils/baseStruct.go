@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 )
 
 type Param interface{}
@@ -253,4 +255,16 @@ func RandomShuffe(raw []string) (newOrder []string) {
 		raw[i], raw[j] = raw[j], raw[i]
 	})
 	return raw
+}
+
+func NewID(raw string) string {
+	// args, _ := utils.DecodeToOptions(raw)
+	c := strings.ReplaceAll(raw, " ", "")
+	buf := md5.Sum([]byte(c))
+	// log.Println("create id by:", utils.Yellow(c))
+	return fmt.Sprintf("%x", buf)
+}
+
+func NewSessionID() string {
+	return NewID(time.Now().String())
 }
