@@ -39,7 +39,7 @@ func (u *WebUpload) Parse(name string) string {
 	return buffer.String()
 }
 
-func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
+func (u *WebUpload) BuildUploadFunc(call func(w http.ResponseWriter, id, filePath string)) {
 	uploadFile := func(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(1024 << 20)
 		file, handler, err := r.FormFile("uploadFile")
@@ -72,7 +72,7 @@ func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
 		http.SetCookie(w, &cookie)
 		if call != nil {
 
-			call(sessId, tempFile)
+			call(w, sessId, tempFile)
 
 		} else {
 			w.Write([]byte("{\"msg\":\"upload ok\", \"state\":\"ok\"}"))
