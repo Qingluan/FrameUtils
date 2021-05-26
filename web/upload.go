@@ -50,6 +50,7 @@ func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
 		defer file.Close()
 		tmpDir := os.TempDir()
 		tempFile := filepath.Join(tmpDir, "Res", "templates", "statics", handler.Filename)
+		log.Println("upload :", handler.Filename)
 		sessId := utils.NewSessionID()
 		u.Session[sessId] = tempFile
 		// w.WriteHeader(201)
