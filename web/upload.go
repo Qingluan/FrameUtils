@@ -62,10 +62,6 @@ func (u *WebUpload) BuildUploadFunc(call func(id, filePath string)) {
 			// defer tempFile.Close()
 			fp, err := os.Create(tempFile)
 			if err != nil {
-				// jsonWrite(w, TData{
-				// 	"state": "fail",
-				// 	"log":   err.Error(),
-				// })
 				return
 			}
 			io.Copy(fp, file)
