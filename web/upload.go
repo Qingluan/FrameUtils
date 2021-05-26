@@ -71,6 +71,7 @@ func (u *WebUpload) BuildUploadFunc(call func(w http.ResponseWriter, id, filePat
 			io.Copy(fp, file)
 		}
 		expirationTime := time.Now().Add(time.Hour)
+		w.Header().Set("Content-Type", "text/json; charset=utf-8")
 		cookie := http.Cookie{Name: "session_id", Value: sessId, Path: "/", MaxAge: -1, Secure: false, HttpOnly: true, Expires: expirationTime}
 		http.SetCookie(w, &cookie)
 		if call != nil {
