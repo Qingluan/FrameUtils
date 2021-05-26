@@ -78,7 +78,7 @@ notify_stack = New("div",{
 right:1%;
 top: 3%;
 max-width:400px;
-
+// height:100%;
     `
 })
 
