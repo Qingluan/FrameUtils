@@ -31,7 +31,10 @@ func NewWebUpload(action string) (u *WebUpload) {
 
 func (u *WebUpload) Parse(name string) string {
 	buffer := bytes.NewBuffer([]byte{})
-	t, _ := template.New(name).ParseFiles(UPLOAD_TEMPLATE)
+	t, err := template.New(name).ParseFiles(UPLOAD_TEMPLATE)
+	if err != nil {
+		log.Println("parse upload err :", err)
+	}
 	t.Execute(buffer, u)
 	return buffer.String()
 }
