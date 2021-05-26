@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/Qingluan/FrameUtils/asset"
 	"github.com/Qingluan/FrameUtils/utils"
@@ -69,7 +70,8 @@ func (u *WebUpload) BuildUploadFunc(call func(w http.ResponseWriter, id, filePat
 			}
 			io.Copy(fp, file)
 		}
-		cookie := http.Cookie{Name: "session-id", Value: sessId, Path: "/", MaxAge: -1, Secure: false, HttpOnly: true}
+		expirationTime := time.Now().Add(time.Hour)
+		cookie := http.Cookie{Name: "session_id", Value: sessId, Path: "/", MaxAge: -1, Secure: false, HttpOnly: true, Expires: expirationTime}
 		http.SetCookie(w, &cookie)
 		if call != nil {
 
