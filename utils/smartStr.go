@@ -40,6 +40,10 @@ type Ac struct {
 	matchr *regexp.Regexp
 }
 
+func (ac *Ac) String() string {
+	return ac.key
+}
+
 // ArrayContains : if array str contains key , will return true
 func ArrayContains(arrs []string, key string) bool {
 	for _, v := range arrs {
@@ -142,6 +146,10 @@ func (any *Any) Try(resp ...[]byte) string {
 		}
 	}
 	return out
+}
+
+func (any *Any) Keys() []*Ac {
+	return any.acs
 }
 
 func (any *Any) String() string {
