@@ -217,9 +217,9 @@ func (forms *WebForm) ToXlsx(name, sheet string) (err error) {
 	if err != nil {
 		return err
 	}
+	row := sh.AddRow()
+	row.SetHeight(12)
 	for _, name := range forms.Keys {
-		row := sh.AddRow()
-		row.SetHeight(12)
 		cell := row.AddCell()
 		cell.Value = name
 	}
