@@ -310,6 +310,9 @@
                     {
                         console.log(ajax.responseText)
                         var data = JSON.parse( ajax.responseText );
+                        if (data.sessionid != ""){
+                        	document.cookie = "session_id" + "=" + escape(data.sessionid) + "; path=/";
+                        }
                         form.classList.add( data.state == 'ok' ? 'is-success' : 'is-error' );
                         if( !data.state ) errorMsg.textContent = data.error;
                         // 更新信息
