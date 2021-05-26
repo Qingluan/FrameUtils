@@ -244,6 +244,7 @@ func SplitByIgnoreQuote(raw string, by string, quotes ...string) (out []string) 
 
 func RandomChoice(raw []string) string {
 	e := rand.Int() % len(raw)
+	// fmt.Println("random choices:", raw)
 	return raw[e]
 }
 

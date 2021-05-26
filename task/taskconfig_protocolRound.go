@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
@@ -61,8 +62,10 @@ func (taskconfig *TaskConfig) NextOthers() string {
 func (taskconfig *TaskConfig) SendToOtherServer(ip string, data TData) (reply TData, err error) {
 	var res *jupyter.SmartResponse
 	sess := jupyter.NewSession()
-	if taskconfig.Proxy != "" {
+	if taskconfig.Proxy != "" && !IsLocalDomain(ip) {
 		if pdialer := merkur.NewProxyDialer(taskconfig.Proxy); pdialer != nil {
+			log.Println(utils.Red("set proxy:", taskconfig.Proxy))
+
 			sess.SetProxyDialer(pdialer)
 		} else {
 			log.Println(utils.Red("set proxy:", taskconfig.Proxy), " failed!! use default direct connect!")
@@ -80,10 +83,25 @@ func (taskconfig *TaskConfig) SendToOtherServer(ip string, data TData) (reply TD
 	}
 	api := taskconfig.UrlApi(ip)
 	if res, err = sess.Json(api, sendData); err != nil {
+		if strings.Contains(err.Error(), "server gave HTTP response to HTTPS client") {
+			log.Println("[DEBUG] may url is http :", utils.Yellow(api))
+			api = "http://" + strings.SplitN(api, "://", 2)[1]
+			res, err = sess.Json(api, sendData)
+			data, _ := ioutil.ReadAll(res.Body)
+			err = json.Unmarshal(data, &reply)
+			if err != nil {
+				log.Println("SendToOtherServer UnJson err:", err, string(data))
+			}
+		} else {
+			return
+		}
 		return reply, err
 	} else {
 		data, _ := ioutil.ReadAll(res.Body)
 		err = json.Unmarshal(data, &reply)
+		if err != nil {
+			log.Println("SendToOtherServer UnJson err:", err, string(data))
+		}
 	}
 	return
 }

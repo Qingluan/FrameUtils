@@ -2,6 +2,7 @@ package task
 
 import (
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/Qingluan/FrameUtils/utils"
@@ -31,6 +32,20 @@ func (config *TaskConfig) CheckAlive(servers ...string) {
 				if _, ok := res.Json()["state"]; ok {
 					alive <- s
 				}
+			} else if err != nil {
+				if strings.Contains(err.Error(), "server gave HTTP response to HTTPS client") {
+					log.Println("[DEBUG] may url is http :", utils.Yellow(s))
+					api := "http://" + strings.SplitN(config.UrlApi(s), "://", 2)[1]
+					if res, err = sess.Json(api, map[string]string{
+						"oper": "test",
+					}); err == nil {
+						if _, ok := res.Json()["state"]; ok {
+							alive <- s
+						}
+					}
+
+				}
+
 			}
 		}(&lockWait, k, alives)
 	}

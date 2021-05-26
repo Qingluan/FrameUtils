@@ -32,9 +32,20 @@ func try2str(v interface{}) (string, bool) {
 	return "", false
 }
 
+func try2array(v interface{}) (e []string, b bool) {
+	switch v.(type) {
+	case []interface{}:
+		for _, v := range v.([]interface{}) {
+			e = append(e, v.(string))
+		}
+		return e, true
+	}
+	return []string{}, false
+}
+
 func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig = new(TaskConfig)
-	copyConfig.state = make(map[string]string)
+	copyConfig.state = make(map[string]TaskState)
 	copyConfig.depatch = make(map[string]string)
 	copyConfig.procs = make(map[string]string)
 	copyConfig.TaskNum = config.TaskNum
@@ -45,6 +56,8 @@ func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 	copyConfig.ReTry = config.ReTry
 	copyConfig.LogPathStr = config.LogPathStr
 	copyConfig.Schema = config.Schema
+	copyConfig.Websocket = config.Websocket
+	copyConfig.Timeout = config.Timeout
 	for k, v := range config.state {
 		copyConfig.state[k] = v
 	}
@@ -61,7 +74,7 @@ func (config *TaskConfig) Copy() (copyConfig *TaskConfig) {
 
 func (config *TaskConfig) UrlApiLog(urlOrIp string) (api string) {
 	if !strings.HasPrefix(urlOrIp, "http") {
-		api = "http://" + urlOrIp
+		api = "https://" + urlOrIp
 	} else {
 		api = urlOrIp
 	}
@@ -75,13 +88,13 @@ func (config *TaskConfig) UrlApiLog(urlOrIp string) (api string) {
 }
 
 func (config *TaskConfig) UrlApi(urlOrIp string) (api string) {
-	if !strings.HasPrefix(urlOrIp, "http") {
-		api = "http://" + urlOrIp
+	if !strings.HasPrefix(urlOrIp, "https") {
+		api = "https://" + urlOrIp
 	} else {
 		api = urlOrIp
 	}
 	if !strings.Contains(urlOrIp, ":") {
-		urlOrIp += ":4099"
+		api += ":4099"
 	}
 	if strings.Count(api, "/") < 3 {
 		api += "/task/v1/api"
@@ -91,7 +104,7 @@ func (config *TaskConfig) UrlApi(urlOrIp string) (api string) {
 
 func (config *TaskConfig) UpdateRequest(url string, data TData) bool {
 	if reply, err := config.ForwardCustom(url, "config", data); err != nil {
-		log.Println("update fail:", utils.Red(err))
+		log.Println("update fail:", url, ":", utils.Red(err))
 	} else {
 		if reply["state"] != "ok" {
 			return false
@@ -106,13 +119,17 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 	if servers := utils.SplitByIgnoreQuote(allservers, ","); len(servers) > 0 {
 		var syncCounter sync.WaitGroup
 		iC := len(servers) - 1
-		// log.Println("All Server :", utils.Yellow(allservers))
+
+		delete(data, "others")
+		data["logTo"] = config.MyIP() + ":" + config.MyPort()
+
 		for i, s := range servers {
 			// if server != config.MyIP() {
 			syncCounter.Add(1)
+			log.Println("Sync Data:", utils.Yellow(data))
 			go func(i, iC int, server string, datai TData, w *sync.WaitGroup) {
 				defer w.Done()
-				delete(datai, "others")
+
 				if config.UpdateRequest(config.UrlApi(server), datai) {
 					if !utils.ArrayContains(config.Others, server) {
 						log.Println("+ Controller:", utils.Green(server), utils.Yellow(" left ", i, "/", iC))
@@ -132,19 +149,29 @@ func (config *TaskConfig) SyncAllConfig(allservers string, data TData) (info str
 		info += "no ip in 'others'"
 		// return
 	}
+	log.Println("Server:", config.Others)
 	return
 }
 
 func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 	ifsync := false
 	allserver := ""
+
+	info = fmt.Sprintf("config : %d", len(data))
 	if v, ok := try2str(data["others"]); ok {
 		log.Println("Found Other:", utils.Green(v))
 		ifsync = true
 		allserver = v
+	} else {
+		if v, ok := try2array(data["others"]); ok {
+			ifsync = true
+			allserver = strings.Join(v, ",")
+		}
 	}
 
 	if v, ok := try2str(data["proxy"]); ok {
+		info += "\nProxy:" + v
+		log.Println("Found Proxy:", utils.Green(v))
 		config.Proxy = v
 	}
 	if v, ok := try2int(data["try"]); ok {
@@ -152,6 +179,11 @@ func (config *TaskConfig) UpdateMyConfig(data TData) (info string) {
 	}
 	if v, ok := try2int(data["taskNum"]); ok {
 		config.TaskNum = v
+	}
+	if v, ok := try2str(data["logTo"]); ok {
+		config.LogServer = v
+		log.Println("Setting LogTo : ", data["logTo"])
+		info += "\nlogTo:" + v
 	}
 	if ifsync {
 		info = config.SyncAllConfig(allserver, data)

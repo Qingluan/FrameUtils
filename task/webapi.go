@@ -43,7 +43,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Println(err)
+			log.Println("Task handle:", err)
 			return
 		}
 		data := TData{}
@@ -115,7 +115,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 							tp := args[1].(string)
 							objType := strings.TrimSpace(tp)
 
-							// fmt.Println("r:", args[0], "tp:", tp)
+							// fmt.Println("input:", input, "tp:", tp)
 							// fs := utils.SplitByIgnoreQuote(input, ",")
 							DefaultTaskWaitChnnael <- append([]string{objType}, input)
 							return TData{
@@ -134,7 +134,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					jsonWrite(w, reply)
 				}
 
-			// 转发的处理和pull一样只是返回不同
+			// 转发的处理和push一样只是返回不同
 			case "forward":
 				if reply, ok, err := config.ProtocolRound(data); ok {
 					WithOrErr(w, data, func(args ...interface{}) TData {
@@ -158,16 +158,28 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 					jsonWrite(w, reply)
 				}
 			case "config":
-				info := config.UpdateMyConfig(data)
-				jsonWrite(w, TData{
-					"state": "ok",
-					"log":   info,
-				})
+				log.Println(utils.Green("try to config ....:", data))
+				if info := config.UpdateMyConfig(data); info != "" {
+					jsonWrite(w, TData{
+						"state": "ok",
+						"log":   info,
+					})
+				} else {
+					jsonWrite(w, TData{
+						"state": "fail",
+						"log":   "no reply",
+					})
+				}
+
 			case "pull":
 				WithOrErr(w, data, func(args ...interface{}) TData {
 					id := args[0].(string)
 					d := config.LogPath()
 					path := filepath.Join(d, id)
+					if strings.Contains(path, "http-") {
+
+						w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+					}
 					if !strings.HasSuffix(path, ".log") {
 						path += ".log"
 					}
@@ -193,6 +205,10 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 						res := []string{}
 						msg := ""
 						r := config.LogPath()
+
+						config.state = nil
+						config.state = make(map[string]TaskState)
+						config.DeployedSaveStateToLocal()
 						for _, f := range fs {
 							if strings.Contains(f.Name(), id) {
 								if err := os.Remove(filepath.Join(r, f.Name())); err != nil {
@@ -222,7 +238,7 @@ func (config *TaskConfig) TaskHandle(w http.ResponseWriter, r *http.Request) {
 		} else {
 			jsonWrite(w, TData{
 				"state": "fail",
-				"log":   "lack \"oper\" ",
+				"log":   "lack \"oper\" [task : ls/push/pull/clear/config/forward | sys: test/stop/restart] ",
 			})
 		}
 	default:

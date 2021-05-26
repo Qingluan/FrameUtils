@@ -46,7 +46,9 @@ func (config *TaskConfig) LoadState() {
 	}
 }
 
-func (config *TaskConfig) depatchTask(data TData) (reply TData, err error) {
+// depatchTask 从TData 部署
+// 包括 "oper" , "input", "tp" 等key
+func (config *TaskConfig) depatchTask(data TData) (reply TData, useNode string, err error) {
 	reply = make(TData)
 	if _, ok := data["input"]; !ok {
 		reply["state"] = "fail"
@@ -59,16 +61,21 @@ func (config *TaskConfig) depatchTask(data TData) (reply TData, err error) {
 		return
 	}
 	server := utils.RandomChoice(config.Others)
-	data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s\"", config.MyIP())
+	useNode = server
+	data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s:%s\"", config.MyIP(), config.MyPort())
+
+	// data["input"] = data["input"].(string) + fmt.Sprintf(" , logTo=\"%s:%s\"", config.MyIP(), config.MyPort())
 	reply, err = config.ForwardCustom(config.UrlApi(server), "push", data)
 	if id, ok := reply["id"]; ok {
+		config.DeploySaveState(reply["id"].(string), useNode, data["input"].(string))
 		config.depatch[id.(string)] = server + "-" + "Running"
 	}
 	return
 }
 
-func (config *TaskConfig) DepatchTask(line string) (reply TData, err error) {
-
+// DepatchTask 部署从 line 开始
+func (config *TaskConfig) DepatchTask(line string) (reply TData, useNode string, err error) {
+	useNode = "no Server Choose"
 	args := strings.SplitN(line, ",", 2)
 	if len(args) != 2 {
 		err = fmt.Errorf("args is not valid!!:%s", line)
@@ -119,6 +126,10 @@ func (config *TaskConfig) DealWithUploadFile(w http.ResponseWriter, h *http.Requ
 				waitTaskLines = append(waitTaskLines, "http,"+lineStr)
 			} else if strings.HasPrefix(lineStr, "tcp://") {
 				fmt.Println(utils.Blue("[tcp]", lineStr))
+				waitTaskLines = append(waitTaskLines, "tcp,"+lineStr)
+			} else if strings.HasPrefix(lineStr, "tcp,") {
+				fmt.Println(utils.Blue("[tcp]", lineStr))
+				waitTaskLines = append(waitTaskLines, lineStr)
 			} else if strings.HasPrefix(lineStr, "cmd,") {
 				fmt.Println(utils.Yellow("[cmd]", lineStr))
 				waitTaskLines = append(waitTaskLines, lineStr)
@@ -149,17 +160,18 @@ func (config *TaskConfig) DepatchByLines(lines ...string) (replys TData) {
 	fail := []string{}
 
 	for _, waitTask := range lines {
-		if reply, err := config.DepatchTask(waitTask); err != nil {
+		if reply, useNode, err := config.DepatchTask(waitTask); err != nil {
 
 			fail = append(fail, waitTask+":"+err.Error())
 		} else {
+			// 结果附上 使用的 节点 和 任务
 			if reply["state"] == "ok" {
-				success = append(success, waitTask)
+				success = append(success, useNode+"//"+waitTask)
 			} else {
 				if log, ok := reply["log"]; ok {
-					fail = append(fail, waitTask+":"+log.(string))
+					fail = append(fail, useNode+"//"+waitTask+":"+log.(string))
 				} else {
-					fail = append(fail, waitTask)
+					fail = append(fail, useNode+"//"+waitTask)
 				}
 			}
 		}

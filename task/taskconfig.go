@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/Qingluan/FrameUtils/utils"
+	"github.com/Qingluan/FrameUtils/web"
 	"github.com/fatih/color"
 )
 
@@ -21,22 +23,34 @@ type TaskConfig struct {
 	ReTry      int      `json:"try" config:"try"`
 	LogPathStr string   `json:"logPath" config:"logPath"`
 	Schema     string   `json:"schema" config:"schema"`
-	state      map[string]string
-	depatch    map[string]string
-	procs      map[string]string
+	SSLCert    string   `json:"sslcert" config:"sslcert"`
+	SSLKey     string   `json:"sslkey" config:"sslkey"`
+	Timeout    int      `json:"timeout" config:"timeout"`
+	// state      map[string]string
+	depatch map[string]string
+	state   map[string]TaskState
+	procs   map[string]string
 	// 用来记录当前任务分配的服务器序号 Others[n] , n = (n + 1) % (len(Others))
 	taskDipatchCursor int
-	lock              sync.RWMutex
+	// 开启服务时初始的登陆密码，每次随机
+	RandomLoginSession string
+	// websocket 控制
+	Websocket *web.Websocket
+	lock      sync.RWMutex
 }
 
 func NewTaskConfig(fileName string) (t *TaskConfig) {
 	// defer
 	t = new(TaskConfig)
 	err := utils.Unmarshal(fileName, t)
-	t.state = make(map[string]string)
+	t.state = make(map[string]TaskState)
 	t.depatch = make(map[string]string)
 	t.procs = make(map[string]string)
+	if t.Timeout == 0 {
+		t.Timeout = 10
+	}
 	t.LoadState()
+	log.Println("Listen:", t.Listen)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,16 +63,22 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 	t = new(TaskConfig)
 	if _, err := os.Stat(fileName); err != nil {
 		t = NewTaskConfigDefault("http://localhost:4099/task/v1/log")
-		t.state = make(map[string]string)
+		t.state = make(map[string]TaskState)
 		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
+		if t.Timeout == 0 {
+			t.Timeout = 10
+		}
 		t.LoadState()
 
 	} else {
 		err := utils.Unmarshal(fileName, t)
-		t.state = make(map[string]string)
+		t.state = make(map[string]TaskState)
 		t.procs = make(map[string]string)
 		t.depatch = make(map[string]string)
+		if t.Timeout == 0 {
+			t.Timeout = 10
+		}
 		t.LoadState()
 		if t.Schema == "" {
 
@@ -74,8 +94,17 @@ func NewTaskConfigOrDefault(fileName string) (t *TaskConfig) {
 }
 
 func (tconfig *TaskConfig) StartTaskWebServer() {
+	err := tconfig.BuildWebInitialization()
+	if err != nil {
+		log.Fatal(err)
+	}
 	tconfig.PatchWebAPI()
-	log.Fatal(http.ListenAndServe(tconfig.Listen, nil))
+	if tconfig.SSLCert != "" {
+		log.Fatal("HTTPS Server:", http.ListenAndServeTLS(tconfig.Listen, tconfig.SSLCert, tconfig.SSLKey, nil))
+	} else {
+		log.Fatal("HTTP Server:", http.ListenAndServe(tconfig.Listen, nil))
+
+	}
 }
 
 func (tconfig *TaskConfig) Get(name string) interface{} {
@@ -115,7 +144,11 @@ func (tconfig *TaskConfig) MakeSureTask(id string, runOrStop bool) {
 		if tconfig.state == nil {
 			log.Println("not init")
 		}
-		tconfig.state[id] = "running"
+		tconfig.state[id] = TaskState{
+			ID:             id,
+			State:          "Running",
+			DeployedServer: tconfig.MyIP() + ":" + tconfig.MyPort(),
+		}
 	} else {
 		delete(tconfig.state, id)
 	}
@@ -136,10 +169,10 @@ func NewTaskConfigDefault(logServer string) (t *TaskConfig) {
 		LogServer: logServer,
 		Others:    []string{},
 		Proxy:     "",
-		ReTry:     3,
+		ReTry:     2,
 		Listen:    "0.0.0.0:4099",
 		Schema:    "http",
-		state:     make(map[string]string),
+		state:     make(map[string]TaskState),
 	}
 	return
 }
@@ -149,7 +182,7 @@ TaskNum:   100,
 LogServer: "http://localhost:8084/log",
 Others:    []string{},
 Proxy:     "",
-ReTry:     3,
+ReTry:     2,
 */
 func DefaultTaskConfigJson() string {
 	t := &TaskConfig{
@@ -157,10 +190,10 @@ func DefaultTaskConfigJson() string {
 		LogServer: "http://localhost:8084/task/v1/log",
 		Others:    []string{},
 		Proxy:     "",
-		ReTry:     3,
+		ReTry:     2,
 		Listen:    ":4099",
 		Schema:    "http",
-		state:     make(map[string]string),
+		state:     make(map[string]TaskState),
 	}
 	b, _ := json.MarshalIndent(t, "", "    ")
 	return string(b)
@@ -171,4 +204,8 @@ func DefaultTaskConfigIni() string {
 }
 func (taskConfig *TaskConfig) MyIP() (ip string) {
 	return utils.GetLocalIP()
+}
+
+func (taskConfig *TaskConfig) MyPort() (port string) {
+	return strings.Split(taskConfig.Listen, ":")[1]
 }

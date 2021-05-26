@@ -4,9 +4,9 @@ import (
 	// "fmt"
 
 	"flag"
+	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	// "math/rand"
@@ -25,17 +25,37 @@ func main() {
 	daemon := false
 	stop := false
 	restart := false
+	gen := false
 	flag.StringVar(&configPath, "c", "conf.ini", "set config ini path")
 	flag.BoolVar(&daemon, "d", false, "true to deamon mode")
 	flag.BoolVar(&stop, "stop", false, "to stop service")
 	flag.BoolVar(&restart, "restart", false, "to restart service")
+	flag.BoolVar(&gen, "G", false, "generate a conf.ini template")
+
 	flag.Parse()
 
 	if _, err := os.Stat(configPath); err != nil {
-		configPath, err = asset.AssetAsFile(filepath.Join("Res", "services", "TaskService", "conf.ini"))
+		configPath, err = asset.AssetAsFile("Res/services/TaskService/conf.ini")
+
 		if err != nil {
 			log.Fatal(utils.BRed(err))
 		}
+	}
+	if gen {
+		fmt.Println(`
+[default]
+
+taskNum = 100
+listen = :4099
+logserver = https://localhost:4099/task/v1/log
+try = 3
+#logPath = 
+#others = 
+#proxy = 
+sslcert = "server.crt"
+sslkey = "server.key"		
+		`)
+		os.Exit(0)
 	}
 
 	if daemon {
@@ -43,7 +63,15 @@ func main() {
 		return
 	}
 	config := task.NewTaskConfig(configPath)
+	if config.SSLCert != "" {
+		if _, err := os.Stat(config.SSLCert); err != nil {
+			k, _ := asset.AssetAsFile("Res/services/TaskService/server.key")
+			c, _ := asset.AssetAsFile("Res/services/TaskService/server.crt")
+			config.SSLCert = c
+			config.SSLKey = k
 
+		}
+	}
 	if stop {
 		s := jupyter.NewSession()
 		log.Println(utils.Yellow(config.UrlApi(config.Listen)))
@@ -88,7 +116,7 @@ func main() {
 	})
 
 	go taskPool.StartTask(func(ok task.TaskObj, res interface{}, err error) {
-		log.Println("after:", ok.Args(), "|", ok.String(), "                                                        ")
+		// log.Println("after:", ok.Args(), "|", ok.String(), "                                                        ")
 		// buf, err := ioutil.ReadFile(ok.String())
 		if err != nil {
 			color.New(color.FgBlue).Println(err)
@@ -98,6 +126,17 @@ func main() {
 		log.Println(utils.UnderLine(res))
 	})
 
+	logo := `
+    ___________              __       _________               __                  
+    \__    ___/____    _____|  | __  /   _____/__.__. _______/  |_  ____   _____  
+      |    |  \__  \  /  ___/  |/ /  \_____  <   |  |/  ___/\   __\/ __ \ /     \ 
+      |    |   / __ \_\___ \|    <   /        \___  |\___ \  |  | \  ___/|  Y Y  \
+      |____|  (____  /____  >__|_ \ /_______  / ____/____  > |__|  \___  >__|_|  /
+                   \/     \/     \/         \/\/         \/            \/      \/ 
+
+    `
+	fmt.Println(utils.Green(logo))
+	fmt.Println(utils.Yellow("Listen:", config.Listen))
 	config.StartTaskWebServer()
 	// fmt.Println(taskPool)
 }

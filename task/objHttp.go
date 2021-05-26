@@ -21,11 +21,18 @@ func (cmd ObjHTTP) ToGo() string {
 }
 
 func (cmd ObjHTTP) ID() string {
+	// log.Println("Finish raw:", cmd.raw)
 	return "http-" + NewID(cmd.raw)
 }
 
 func (cmd ObjHTTP) Args() []string {
 	return cmd.args
+}
+
+func (cmd ObjHTTP) Path() string {
+	d := cmd.config.LogPath()
+	name := cmd.ID()
+	return filepath.Join(d, name) + ".log"
 }
 
 func (cmd ObjHTTP) String() string {

@@ -40,6 +40,13 @@ func (cmd BaseObj) String() string {
 	return filepath.Join(d, name) + ".log"
 }
 
+func (cmd BaseObj) Path() string {
+	d := cmd.config.LogPath()
+	name := cmd.ID()
+	return filepath.Join(d, name) + ".log"
+
+}
+
 func (cmd BaseObj) Error() error {
 	return cmd.err
 }
@@ -62,6 +69,13 @@ func (cmd CmdObj) ToGo() string {
 
 func (cmd CmdObj) Args() []string {
 	return append(cmd.pre, cmd.args...)
+}
+
+func (cmd CmdObj) Path() string {
+	d := cmd.config.LogPath()
+	name := cmd.ID()
+	return filepath.Join(d, name) + ".log"
+
 }
 
 func (cmd CmdObj) String() string {

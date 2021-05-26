@@ -1,14 +1,14 @@
 package task
 
 import (
-	"crypto/md5"
 	"encoding/json"
+	"fmt"
 	"log"
 	"path/filepath"
-	"strings"
 )
 
 type ErrObj struct {
+	Root string
 	Err  error
 	tp   string
 	raw  string
@@ -30,24 +30,22 @@ func (erro ErrObj) String() string {
 	}
 	return string(buf)
 }
+func (erro ErrObj) Path() string {
+	return filepath.Join(erro.Root, erro.ID()+".log")
+}
 func (erro ErrObj) Error() error {
 	return erro.Err
 }
 func (erro ErrObj) ID() string {
-	md := md5.New()
-	// md.Write()
+	return erro.tp + "-" + NewID(erro.raw)
 
-	ks := strings.Join(erro.Args(), "|")
-	raw := []byte(ks)
-	b := md.Sum(raw)
-	return string(b)
 }
 func (erro ErrObj) Args() []string {
+	fmt.Println("Err try: args:", erro.raw)
 	return []string{erro.tp, erro.raw}
 }
 
-func (erro ErrObj) LogToLocal(root string) {
-	id := NewID(erro.raw)
-	path := filepath.Join(root, "err-"+id) + ".log"
-	_to_end(path, []byte(erro.Err.Error()))
+func (erro ErrObj) LogToLocal() {
+	// fmt.Println("\n\nTo ENd:", path)
+	_to_end(erro.Path(), []byte(erro.Err.Error()))
 }

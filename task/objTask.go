@@ -6,4 +6,5 @@ type TaskObj interface {
 	String() string
 	Error() error
 	ToGo() string
+	Path() string
 }
