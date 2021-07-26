@@ -23,6 +23,10 @@ func main() {
 	flag.StringVar(&search, "s", "", "search str")
 	flag.StringVar(&tps, "t", "", "set search types ")
 	flag.Parse()
+	fileTpes := make(map[string]int)
+	for _, f := range strings.Split(tps, ",") {
+		fileTpes[f] = 1
+	}
 	startAt := time.Now()
 	chans := make(chan string, 100)
 	waiter := sync.WaitGroup{}
@@ -52,23 +56,34 @@ func main() {
 	}(chans, &waiter)
 
 	no := 0
+	filter := 0
 	filepath.Walk(root, func(path string, state os.FileInfo, inerr error) (err error) {
 		_t := strings.Split(path, ".")
+		t := _t[len(_t)-1]
 		if state.IsDir() {
 			return nil
 		}
-		if tps != "" && strings.Contains(tps, _t[len(_t)-1]) {
-			no += 1
-			// fmt.Printf("\rsearch file>> %d ", no)
-			waiter.Add(1)
 
-			chans <- path
+		filter += 1
+		if tps != "" {
+			// fmt.Println(tps, t)
+			if _, ok := fileTpes[t]; ok {
+				no += 1
+
+				waiter.Add(1)
+
+				chans <- path
+			}
 		} else {
 			no += 1
 			// fmt.Printf("\rsearch file>> %d ", no)
 			waiter.Add(1)
 
 			chans <- path
+		}
+
+		if filter%10000 == 0 {
+			fmt.Printf("\rsearch file>> %d  Grep:%d", filter, no)
 		}
 		return nil
 	})
