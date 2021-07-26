@@ -3,8 +3,8 @@ module github.com/Qingluan/FrameUtils
 go 1.16
 
 require (
-	github.com/Qingluan/jupyter v1.1.2
-	github.com/Qingluan/merkur v1.0.12
+	github.com/Qingluan/jupyter v1.1.3
+	github.com/Qingluan/merkur v1.0.13
 	github.com/asticode/go-astikit v0.20.0
 	github.com/asticode/go-astilectron v0.22.5
 	github.com/c-bata/go-prompt v0.2.6
@@ -15,7 +15,6 @@ require (
 	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible // indirect
 	github.com/machinebox/progress v0.2.0
