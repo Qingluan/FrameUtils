@@ -36,16 +36,46 @@ func main() {
 	dst := ""
 	out := ""
 	filter := ""
+	root := ""
+	grepStr := ""
+	tps := ""
 	flag.BoolVar(&cli, "cli", false, "true to console")
 	flag.StringVar(&frp, "fr", "", "set from file .")
 	flag.StringVar(&dst, "to", "", "set to file.")
 	flag.StringVar(&out, "out", "", "output path dir.")
+	flag.StringVar(&root, "r", ".", " set root dir .")
+	flag.StringVar(&grepStr, "s", "", " set grep str ")
+	flag.StringVar(&tps, "t", "", " set typs str ")
 
 	flag.StringVar(&filter, "grep", "", "fileter table if type is sql/xlsx.")
 	flag.Parse()
+	if grepStr != "" {
+		sengine := engine.EngineInit(root)
+		if tps != "" {
+			tpss := strings.Split(tps, ",")
+			sengine.SetFilter(tpss...)
+		}
+		go sengine.Factory(func(lines []utils.Line) {
+			// log.Println(utils.Green("Found : "))
+			for _, line := range lines {
+				fmt.Println(utils.Yellow(line[0]))
+			}
+		}, true)
+		sengine.SetResultListener(func(ls []utils.Line) {
+			// for _, l := range ls {
+			// fmt.Println(l)
+			// }
+		})
+
+		sengine.Search(grepStr)
+		time.Sleep(20 * time.Second)
+		<-sengine.IfEnd
+
+		return
+	}
 	if cli {
 		sengine := engine.EngineInit()
-		go sengine.Factory(nil)
+		go sengine.Factory(nil, false)
 
 		sengine.SetResultListener(func(ls []utils.Line) {
 			for _, l := range ls {

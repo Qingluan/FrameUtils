@@ -85,6 +85,24 @@ func OpenObj(file string) (Obj, error) {
 				tableName: file,
 			},
 		}, nil
+	} else if strings.HasSuffix(file, ".docx") {
+		return &BaseObj{
+			&Docx{
+				tableName: file,
+			},
+		}, nil
+	} else {
+		buf, err := ioutil.ReadFile(file)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		return &BaseObj{
+			&Txt{
+				tableName: file,
+				raw:       string(buf),
+			},
+		}, nil
 	}
 	return nil, nil
 }

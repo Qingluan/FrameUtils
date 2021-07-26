@@ -37,6 +37,10 @@ func readPdf(path string) (string, error) {
 	return msg, nil
 }
 
+func PDFToStr(path string) (content string, err error) {
+	content, err = readPdf(path)
+	return
+}
 func PdfToEs(path string) (es ElasticFileDocs, err error) {
 	es.SomeStr, err = readPdf(path)
 	es.Path = path

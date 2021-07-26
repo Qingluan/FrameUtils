@@ -25,7 +25,7 @@ require (
 	github.com/pkg/sftp v1.13.0
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/sirupsen/logrus v1.8.1
-	github.com/tealeg/xlsx/v3 v3.2.3 // indirect
+	github.com/tealeg/xlsx/v3 v3.2.3
 	github.com/thedatashed/xlsxreader v1.2.0
 	github.com/timakin/gonvert v0.0.0-20170112000238-5dce59dbd0d8
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
