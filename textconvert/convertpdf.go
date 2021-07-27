@@ -2,8 +2,9 @@ package textconvert
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/dcu/pdf"
+	"github.com/Qingluan/FrameUtils/textconvert/pdf"
 )
 
 func readPdf(path string) (string, error) {
@@ -12,6 +13,7 @@ func readPdf(path string) (string, error) {
 		_ = f.Close()
 	}()
 	if err != nil {
+		log.Println("Pdf open err:", path, err)
 		return "", err
 	}
 	totalPage := r.NumPage()
@@ -22,7 +24,11 @@ func readPdf(path string) (string, error) {
 			continue
 		}
 
-		rows, _ := p.GetTextByRow()
+		rows, err2 := p.GetTextByRow()
+		if err2 != nil {
+			// log.Println("Pdf get text err:", err2)
+			return "", err2
+		}
 		for _, row := range rows {
 			// println(">>>> row: ", row.Position)
 			line := ""
@@ -37,6 +43,10 @@ func readPdf(path string) (string, error) {
 	return msg, nil
 }
 
+func PDFToStr(path string) (content string, err error) {
+	content, err = readPdf(path)
+	return
+}
 func PdfToEs(path string) (es ElasticFileDocs, err error) {
 	es.SomeStr, err = readPdf(path)
 	es.Path = path

@@ -1,10 +1,8 @@
 package web
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -116,78 +114,78 @@ func (page *Page) OnPost(call func(w http.ResponseWriter, r *http.Request)) *Pag
 }
 
 // RenderPage : get base bootstrap html
-func (page *Page) RenderPage(jsArea ...string) *Page {
-	defer L(page.Route, "Registed!")
-	js := ""
-	extend := ""
-	for _, v := range RegistedWebSocketFuncs {
-		extend += v.String() + "\n"
-	}
+// func (page *Page) RenderPage(jsArea ...string) *Page {
+// 	defer L(page.Route, "Registed!")
+// 	js := ""
+// 	extend := ""
+// 	for _, v := range RegistedWebSocketFuncs {
+// 		extend += v.String() + "\n"
+// 	}
 
-	for selector, jsevent := range page.JsEvents {
-		if !strings.HasPrefix(selector, "#") {
-			selector = "#" + selector
-		}
-		js += "\n" + Query(selector).Call(jsevent.Method(), jsevent.String()).String()
-	}
-	for _, widget := range page.BodyWidgets {
-		selector, method, jsevent, callback := widget.Event()
-		// L(page.Route, "debug", selector, method, jsevent)
-		if callback != nil {
-			RegistWebSocketCallback(selector, callback)
-		}
-		if !strings.HasPrefix(selector, "#") {
-			selector = "#" + selector
-		}
-		js += "\n" + Query(selector).Call(method, jsevent.String()).String()
+// 	for selector, jsevent := range page.JsEvents {
+// 		if !strings.HasPrefix(selector, "#") {
+// 			selector = "#" + selector
+// 		}
+// 		js += "\n" + Query(selector).Call(jsevent.Method(), jsevent.String()).String()
+// 	}
+// 	for _, widget := range page.BodyWidgets {
+// 		selector, method, jsevent, callback := widget.Event()
+// 		// L(page.Route, "debug", selector, method, jsevent)
+// 		if callback != nil {
+// 			RegistWebSocketCallback(selector, callback)
+// 		}
+// 		if !strings.HasPrefix(selector, "#") {
+// 			selector = "#" + selector
+// 		}
+// 		js += "\n" + Query(selector).Call(method, jsevent.String()).String()
 
-	}
-	if jsArea != nil {
-		js += "\n" + jsArea[0]
+// 	}
+// 	if jsArea != nil {
+// 		js += "\n" + jsArea[0]
 
-		// log.Println(js)
-	}
-	for _, j := range page.ExtendJS {
-		js += "\n" + j.String()
-	}
-	http.HandleFunc(page.Route, func(w http.ResponseWriter, r *http.Request) {
+// 		// log.Println(js)
+// 	}
+// 	for _, j := range page.ExtendJS {
+// 		js += "\n" + j.String()
+// 	}
+// 	http.HandleFunc(page.Route, func(w http.ResponseWriter, r *http.Request) {
 
-		switch r.Method {
-		case "GET":
-			if page.Method&METHOD_GET == METHOD_GET {
-				AllStyle := ""
-				for name, css := range page.Style {
-					AllStyle += fmt.Sprintf("%s{\n%s\n};", name, css)
-				}
-				h := fmt.Sprintf(`<!DOCTYPE html>
-			<html>
-				<head>
-					<meta charset="utf-8">
-					<style type="text/css" >%s</style>
-					<style type="text/css" custome="true" >%s</style>
-					<style type="text/css" custome="true" cssfor="toast" >%s</style>
-				</head>
-				<body class="h-100" style="        position: absolute; width:100%%;">
-			`, AllStyle, BootstrapCSS, ToastCSS) + page.Body + fmt.Sprintf(`
-					<script jsName="jqueryv3.3.1">%s</script>
-					<script jsName="bootstrapPop">%s</script>
-					<script jsName="bootstrap">%s</script>
-					<script jsName="toast">%s</script>
-					<script jsname="base-functions">%s</script>
-					<script jsname="uploadJS">%s</script>
-				</body>
-			</html>`, Jquery, BootstrapPopJS, BootstrapJS, ToastJS, baseFunctionJS+extend, js)
-				fmt.Fprint(w, h)
-			}
-		case "POST":
-			if page.Handler != nil {
-				page.Handler(w, r)
-			}
-		}
+// 		switch r.Method {
+// 		case "GET":
+// 			if page.Method&METHOD_GET == METHOD_GET {
+// 				AllStyle := ""
+// 				for name, css := range page.Style {
+// 					AllStyle += fmt.Sprintf("%s{\n%s\n};", name, css)
+// 				}
+// 				h := fmt.Sprintf(`<!DOCTYPE html>
+// 			<html>
+// 				<head>
+// 					<meta charset="utf-8">
+// 					<style type="text/css" >%s</style>
+// 					<style type="text/css" custome="true" >%s</style>
+// 					<style type="text/css" custome="true" cssfor="toast" >%s</style>
+// 				</head>
+// 				<body class="h-100" style="        position: absolute; width:100%%;">
+// 			`, AllStyle, BootstrapCSS, ToastCSS) + page.Body + fmt.Sprintf(`
+// 					<script jsName="jqueryv3.3.1">%s</script>
+// 					<script jsName="bootstrapPop">%s</script>
+// 					<script jsName="bootstrap">%s</script>
+// 					<script jsName="toast">%s</script>
+// 					<script jsname="base-functions">%s</script>
+// 					<script jsname="uploadJS">%s</script>
+// 				</body>
+// 			</html>`, Jquery, BootstrapPopJS, BootstrapJS, ToastJS, baseFunctionJS+extend, js)
+// 				fmt.Fprint(w, h)
+// 			}
+// 		case "POST":
+// 			if page.Handler != nil {
+// 				page.Handler(w, r)
+// 			}
+// 		}
 
-	})
-	return page
-}
+// 	})
+// 	return page
+// }
 
 func StartServer(listenAddr string) {
 	http.HandleFunc("/api", ApiSocketHandle)
@@ -218,11 +216,11 @@ func StartServer(listenAddr string) {
 		})
 	}
 	HomePage.OnWebsocket("db", dataFunc)
-	HomePage.RenderPage()
+	// HomePage.RenderPage()
 
-	for _, page := range AllPages {
-		page.RenderPage()
-	}
+	// for _, page := range AllPages {
+	// 	// page.RenderPage()
+	// }
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
 

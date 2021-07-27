@@ -40,6 +40,27 @@ type Ac struct {
 	matchr *regexp.Regexp
 }
 
+func (ac *Ac) String() string {
+	return ac.key
+}
+
+func (ac *Ac) ValueStr() string {
+	return ac.datas
+}
+
+func (ac *Ac) ValueInt() int {
+	return ac.datai
+}
+
+func (ac *Ac) Value() string {
+	if ac.t == 2 {
+		return fmt.Sprintf("%d", ac.datai)
+	} else if ac.t == 3 {
+		return ac.matchr.String()
+	}
+	return ac.datas
+}
+
 // ArrayContains : if array str contains key , will return true
 func ArrayContains(arrs []string, key string) bool {
 	for _, v := range arrs {
@@ -142,6 +163,10 @@ func (any *Any) Try(resp ...[]byte) string {
 		}
 	}
 	return out
+}
+
+func (any *Any) Keys() []*Ac {
+	return any.acs
 }
 
 func (any *Any) String() string {

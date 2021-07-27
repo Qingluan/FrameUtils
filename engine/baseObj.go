@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Qingluan/FrameUtils/utils"
@@ -48,12 +49,16 @@ func (self *BaseObj) Search(k string) (lines []utils.Line) {
 
 		}
 	} else {
+		lineNo := 0
+		// fmt.Println("search:", self.Base.Tp())
 		for line := range self.Iter() {
-
+			lineNo += 1
+			// fmt.Println("f:", line)
 			if _, f := line.Filter(func(i int, s string) bool {
 				return strings.Contains(s, k)
 			}); f {
-				lines = append(lines, line)
+				// fmt.Println("found :", k, line)
+				lines = append(lines, utils.Line{fmt.Sprintf("%s +%3d   :%s", line[0], lineNo, strings.Join(line[1:], " "))})
 			}
 		}
 	}
@@ -86,6 +91,7 @@ func (self *BaseObj) Header(ks ...int) (header utils.Line) {
 }
 
 func (self *BaseObj) SearchTo(key string, linesChan chan []utils.Line) {
+
 	lines := self.Search(key)
 	linesChan <- lines
 }
@@ -94,8 +100,11 @@ func (self *BaseObj) Close() error {
 }
 
 func (self *BaseObj) Work(sender chan string, reciver chan []utils.Line) {
+	// fmt.Println("searching:")
+
 	for {
 		op := <-sender
+		// fmt.Println("searching2:")
 		if op == "[END]" {
 			break
 		}

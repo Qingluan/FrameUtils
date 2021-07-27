@@ -167,6 +167,27 @@ func WebAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func BuildStatic(dir string) (err error) {
+	temp := os.TempDir()
+	rootDir := filepath.Join(temp, dir)
+	for _, file := range asset.AssetNames() {
+		if e, err := asset.AssetAsFile(file); err != nil {
+			log.Printf("Release: %s \n", utils.Red(file, "->", e, err))
+		} else {
+			fmt.Printf("Release: %s \r", utils.Green(file))
+		}
+
+	}
+	fmt.Println(utils.Green("Statics in :", rootDir))
+	http.Handle("/statics/", http.StripPrefix("/statics/", http.FileServer(http.Dir(rootDir))))
+	return err
+}
+
+func BuildAuth(uri string) {
+	http.HandleFunc(filepath.Join(uri, "login"), WebAuthLogin)
+	http.HandleFunc(filepath.Join(uri, "logout"), WebAuthLogout)
+}
+
 func (self *TaskConfig) BuildWebInitialization() (err error) {
 	// asset.AssetAsFile("Res/services/TaskService/web")
 	// root, err := asset.AssetDir("Res/services/TaskService/web")

@@ -1,0 +1,103 @@
+{{ define "form" }}
+
+{{ if ne .Action  "json" }}
+<form  id="{{ .ID }}" method="POST" action="{{ .Action }}">
+{{ else }}
+<div  id="{{ .ID }}" >
+{{end }}
+
+    {{ range $form := .Forms }}
+    <div class="input-group mb-3">
+        <label class="input-group-text" for="{{ $form.ID }}">{{ $form.Title  }}
+            
+        
+        
+        {{ if eq  $form.Type "select" }}
+            <svg class="bi me-2" width="32" height="20" ><use xlink:href="#chat-quote-fill"/></svg>
+        </label>
+        <select class="form-select form-content" name="{{ $form.Name }}" id="{{ $form.ID }}" style="width: 80%;">
+        <!-- <option  >选择...</option> -->
+            {{ range $item := $form.Values }}
+            <option value="{{ $item }}">{{ $item }}</option>
+            {{ end }}
+        </select>
+        {{ else if eq $form.Type "text" }}
+            <svg class="bi me-2" width="32" height="20" ><use xlink:href="#chat-quote-fill"/></svg>
+        </label>
+            <textarea name="{{ $form.Name }}" class="form-control form-content" id="{{ $form.ID }}" rows="10"></textarea>
+        {{ else if eq $form.Type "num" }}
+            <svg class="bi me-2" width="32" height="20" ><use xlink:href="#people-circle"/></svg>
+        
+        </label>
+            <input type="number" name="{{ $form.Name }}" class="form-control form-content" placeholder="{{ $form.Default }}" id="{{ $form.ID }}" >
+        {{ else if eq $form.Type "date" }}
+            <svg class="bi me-2" width="32" height="20" ><use xlink:href="#calendar3"/></svg>
+        </label>
+            <!-- <div class='input-group date' id='data-choose-{{ $form.ID }}'> -->
+            <input type='text' id='data-choose-{{ $form.ID }}' name="{{ $form.Name }}" class="form-control input-group date form-content" />
+            <span class="input-group-addon">
+                
+            </span>
+            <!-- </div> -->
+            <script>
+                var nowDate = new Date();
+                setTimeout(function(){
+                    eval(`$("#data-choose-{{ $form.ID }}").datetimepicker({
+                        format: "YYYY-MM-DD",
+                        locale: moment.locale("zh-cn"),
+                        defaultDate: "${nowDate.getUTCFullYear()}-${nowDate.getUTCMonth() + 1}-${nowDate.getUTCDate()}",
+                    })`);
+                },1000)
+                
+            </script>
+                
+        {{ else }}
+        </label>
+            <input type="text" name="{{ $form.Name }}" class="form-control form-content" placeholder="{{ $form.Default }}" id="{{ $form.ID }}" >
+        {{ end }}
+    </div>
+    {{ end }}
+
+    {{ if eq .Action  "json" }}
+        <button class="btn btn-outline-secondary" type="button" onclick="JsonSubmit()" id="">提交</button>
+        <script>
+            var JsonSubmit = null
+            window.onload = function () {
+                console.log("load post function")
+                JsonSubmit = function(){
+                    var data = {};
+                    var es = $("#{{.ID}} > div > .form-content");
+                    for (var i=0;i < es.length;i++){
+                        console.log(i,es[i])
+                        var form = es[i];
+                        
+                        var value = $(form).val().trim();
+                        var name = $(form).attr("name").trim();
+                        data[name] = value;
+                    }
+                    console.log('data:',data);
+                    $.post("{{ .Uri }}", JSON.stringify(data),function(data){
+                        console.log(data);
+                        var data = JSON.parse(data);
+                        console.log(data);
+                        if (data.type == "js"){
+                            eval(data.content);
+                        }else{
+                            notifymsg("ok sumit",true)
+                        }
+                    })
+                }
+            }
+            
+        </script>
+    {{ else }}
+        <button class="btn btn-outline-secondary" type="submit"  id="">提交</button>
+    {{ end }}
+
+{{ if ne .Action  "" }}
+</form>
+{{ else }}
+</div>
+{{end }}
+
+{{ end }}
