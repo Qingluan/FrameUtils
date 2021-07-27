@@ -18,6 +18,7 @@ type MySql struct {
 	obj         *sql.DB
 	filtertable string
 	nowtable    string
+	level       string
 	tables      []string
 }
 
@@ -59,6 +60,7 @@ func (cli *MySql) WriteToExcel(name, sheet string, rows *sql.Rows) (err error) {
 	if fArr, err = rows.Columns(); err != nil {
 		return
 	}
+	// fmt.Println("Match :", len(fArr))
 	fb.PutFields(fArr)
 	// outArr := []interface{}{}
 	var sh *xlsx.Sheet
@@ -70,6 +72,7 @@ func (cli *MySql) WriteToExcel(name, sheet string, rows *sql.Rows) (err error) {
 		firstrow := sh.AddRow()
 		for i, name := range fArr {
 			cell := firstrow.AddCell()
+
 			cell.SetValue(name)
 			sh.SetColWidth(i, i, float64(len(name)))
 		}
@@ -89,24 +92,41 @@ func (cli *MySql) WriteToExcel(name, sheet string, rows *sql.Rows) (err error) {
 				sh.SetColWidth(i, i, float64(len(name)))
 			}
 		}
+
+		defer wb.Save(name)
 	}
 
 	// maxline := sh.MaxRow
-
+	i := 0
 	for rows.Next() {
 		if err := rows.Scan(fb.GetFieldPtrArr()...); err != nil {
 			return err
 		}
+		i += 1
 		row := sh.AddRow()
+		s := ""
 		for _, name := range fArr {
 			value := fb.Get(name)
-			cell := row.AddCell()
-			cell.SetValue(value)
+			switch value.(type) {
+			case nil:
+			default:
+				cell := row.AddCell()
+				cell.SetValue(value)
+				s += fmt.Sprint(string(value.([]byte))) + " , "
+
+			}
+		}
+		if strings.Contains(cli.level, "val") {
+			fmt.Println("match: ", s)
 		}
 		// fmt.Printf("Row: %v, %v, %v, %s\n", fb.Get("IDOrder"), fb.Get("IsConfirm"), fb.Get("IDUser"), fb.Get("Created"))
 		// outArr = append(outArr, fb.GetFieldArr())
 	}
 	return
+}
+
+func (cli *MySql) SetLogLevel(loglevel string) {
+	cli.level = loglevel
 }
 
 func (cli *MySql) MatchFromFile(input, output, table, key string, matchFields ...string) (err error) {
@@ -145,6 +165,10 @@ func (cli *MySql) MatchFromFile(input, output, table, key string, matchFields ..
 			matchItems := "('" + strings.Join(accounts, "', '") + "')"
 
 			queryTmp := fmt.Sprintf(tmps, fileds, table, key, matchItems)
+			if strings.Contains(cli.level, "sql") {
+				log.Println("sql:\n", queryTmp)
+
+			}
 			// places := []map[string]interface{}
 			dbExe, err = cli.obj.Query(queryTmp)
 			if err != nil {
@@ -153,9 +177,11 @@ func (cli *MySql) MatchFromFile(input, output, table, key string, matchFields ..
 			}
 			err = cli.WriteToExcel(output, table, dbExe)
 
-			accounts = []string{}
 			done += len(accounts)
-			log.Println("Done:", done)
+			accounts = []string{}
+			if strings.Contains(cli.level, "state") {
+				log.Println("Ready:", done)
+			}
 
 		} else {
 			accounts = append(accounts, line)
@@ -177,8 +203,9 @@ func (cli *MySql) MatchFromFile(input, output, table, key string, matchFields ..
 
 			return
 		}
-		log.Println("Done:", done)
-
+		if strings.Contains(cli.level, "state") {
+			log.Println("Ready:", done)
+		}
 		err = cli.WriteToExcel(output, table, dbExe)
 	}
 	return
