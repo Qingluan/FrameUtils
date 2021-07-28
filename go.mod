@@ -8,12 +8,14 @@ require (
 	github.com/asticode/go-astikit v0.20.0
 	github.com/asticode/go-astilectron v0.22.5
 	github.com/c-bata/go-prompt v0.2.6
+	github.com/charmbracelet/bubbletea v0.14.1 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.7
-	github.com/dcu/pdf v0.0.0-20190612170416-c8b299d05f89
 	github.com/fatih/color v1.10.0
 	github.com/fortytw2/leaktest v1.3.0 // indirect
-	github.com/google/go-cmp v0.5.5 // indirect
+	github.com/gen2brain/dlgs v0.0.0-20210609125024-bf6c92aaa984
+	github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f // indirect
 	github.com/google/uuid v1.2.0
+	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible // indirect
