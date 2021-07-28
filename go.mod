@@ -13,10 +13,17 @@ require (
 	github.com/fatih/color v1.10.0
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/gen2brain/dlgs v0.0.0-20210609125024-bf6c92aaa984
+<<<<<<< HEAD
 	github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f // indirect
 	github.com/google/uuid v1.2.0
 	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d // indirect
+=======
+	github.com/go-sql-driver/mysql v1.6.0
+	github.com/google/uuid v1.2.0
+	github.com/gopherjs/gopherjs v0.0.0-20210621113107-84c6004145de // indirect
+>>>>>>> e22308763f3956b3341821f8642172219617d6f9
 	github.com/gorilla/websocket v1.4.2
+	github.com/junhsieh/goexamples v0.0.0-20210726042009-4fa8c1342284
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible // indirect
 	github.com/machinebox/progress v0.2.0
@@ -27,6 +34,7 @@ require (
 	github.com/pkg/sftp v1.13.0
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/sirupsen/logrus v1.8.1
+	github.com/tealeg/xlsx v1.0.5
 	github.com/tealeg/xlsx/v3 v3.2.3
 	github.com/thedatashed/xlsxreader v1.2.0
 	github.com/timakin/gonvert v0.0.0-20170112000238-5dce59dbd0d8
