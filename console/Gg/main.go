@@ -5,15 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Qingluan/FrameUtils/console/Gg/ui"
+	"github.com/Qingluan/FrameUtils/servermanager"
 	"github.com/Qingluan/FrameUtils/textconvert"
+	"github.com/Qingluan/FrameUtils/tui"
 	"github.com/Qingluan/FrameUtils/utils"
 )
 
@@ -24,22 +28,50 @@ func main() {
 	todoPro := false
 	matchAll := false
 	openvim := false
+	PasswordMode := false
 	catmode := ""
+	PROXY := ""
 	// findPath := ""
 
 	flag.StringVar(&root, "r", ".", "root dir")
 	flag.StringVar(&search, "s", "", "search str")
 	flag.StringVar(&tps, "t", "", "set search types ")
 	flag.BoolVar(&matchAll, "v", false, "true to show every match")
-	flag.BoolVar(&todoPro, "To", false, "true to start todo program")
+	flag.BoolVar(&todoPro, "todo", false, "true to start todo program")
 	flag.BoolVar(&openvim, "vim", false, "true to open with editer")
 	flag.StringVar(&catmode, "cat", "", "true cat files")
-
+	flag.BoolVar(&PasswordMode, "pwd", false, "true to open my password")
+	flag.StringVar(&PROXY, "proxy", "", "set proxy")
 	flag.Parse()
 	args := flag.Args()
 	// fmt.Println("res", args)
 	if todoPro {
 		ui.Main(root)
+		return
+	}
+	if PasswordMode {
+		pn := ui.Load()
+		val := pn.CHoose()
+		if strings.HasPrefix(val, "ssh://") {
+			vps := servermanager.Parse(val)
+			vps.Proxy = PROXY
+			vps.Shell()
+		} else if strings.HasPrefix(val, "vul://") {
+			manager := servermanager.NewVultr(val[6:])
+			if err := manager.Update(); err == nil {
+				ee := []tui.CanString{}
+				for _, w := range manager.GetServers() {
+					ee = append(ee, w)
+				}
+				if oneVps, ok := tui.SelectOne("select one:", ee); ok {
+					vps := oneVps.(servermanager.Vps)
+					vps.Proxy = PROXY
+					fmt.Println(vps.Shell())
+				}
+			} else {
+				log.Fatal(utils.Red(err))
+			}
+		}
 		return
 	}
 	if catmode != "" {
@@ -89,11 +121,21 @@ func FindPath(root string, args []string) {
 	filepath.Walk(root, func(path string, state os.FileInfo, err error) (oerr error) {
 		found := true
 		raw := path
+		span := "/"
+		// file := filepath.Base(path)
+		if runtime.GOOS == "windows" {
+			span = "\\"
+		}
+		lat := -1
 		if state.IsDir() {
 			for _, arg := range args {
-				if c := strings.Index(path, arg); c >= 0 {
-					path = path[c:]
+				if c := strings.Index(path, span+arg); c >= 0 && c > lat {
+
+					lat = c
+				} else if c := strings.Index(path, arg); c == 0 {
+					lat = c
 				} else {
+
 					found = false
 					break
 				}

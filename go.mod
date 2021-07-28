@@ -8,20 +8,15 @@ require (
 	github.com/asticode/go-astikit v0.20.0
 	github.com/asticode/go-astilectron v0.22.5
 	github.com/c-bata/go-prompt v0.2.6
-	github.com/charmbracelet/bubbletea v0.14.1 // indirect
+	github.com/charmbracelet/bubbletea v0.14.1
 	github.com/cheggaaa/pb/v3 v3.0.7
 	github.com/fatih/color v1.10.0
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/gen2brain/dlgs v0.0.0-20210609125024-bf6c92aaa984
-<<<<<<< HEAD
-	github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f // indirect
-	github.com/google/uuid v1.2.0
-	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d // indirect
-=======
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/uuid v1.2.0
 	github.com/gopherjs/gopherjs v0.0.0-20210621113107-84c6004145de // indirect
->>>>>>> e22308763f3956b3341821f8642172219617d6f9
 	github.com/gorilla/websocket v1.4.2
 	github.com/junhsieh/goexamples v0.0.0-20210726042009-4fa8c1342284
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
@@ -38,7 +33,8 @@ require (
 	github.com/tealeg/xlsx/v3 v3.2.3
 	github.com/thedatashed/xlsxreader v1.2.0
 	github.com/timakin/gonvert v0.0.0-20170112000238-5dce59dbd0d8
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 	golang.org/x/text v0.3.6
 )

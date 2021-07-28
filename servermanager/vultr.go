@@ -389,3 +389,25 @@ func (v *Vultr) Update() (err error) {
 	}
 	return
 }
+
+func Parse(sshStr string) Vps {
+	tail := strings.SplitN(sshStr, "://", 2)[1]
+	v := Vps{
+		USER:   "root",
+		Region: "Unkonw",
+		TAG:    "Unkonw",
+	}
+	if strings.Contains(tail, "/") {
+		ip := strings.SplitN(tail, "/", 2)[0]
+		v.IP = ip
+		auth := strings.SplitN(tail, "/", 2)[0]
+		if strings.Contains(auth, ":") {
+			fs := strings.SplitN(auth, ":", 2)
+			v.USER = fs[0]
+			v.PWD = fs[1]
+		}
+	} else {
+		v.IP = tail
+	}
+	return v
+}
