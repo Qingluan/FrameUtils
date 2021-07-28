@@ -29,6 +29,8 @@ require (
 	github.com/pkg/sftp v1.13.0
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/sirupsen/logrus v1.8.1
+	github.com/sugyan/ttygif v0.0.0-20160926114937-b539f0e7d1a9 // indirect
+	github.com/sugyan/ttyread v0.0.0-20140728103301-67501e8d8a3b // indirect
 	github.com/tealeg/xlsx v1.0.5
 	github.com/tealeg/xlsx/v3 v3.2.3
 	github.com/thedatashed/xlsxreader v1.2.0
