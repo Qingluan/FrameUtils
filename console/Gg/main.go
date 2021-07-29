@@ -52,6 +52,7 @@ func main() {
 	if PasswordMode {
 		pn := ui.Load()
 		val := pn.CHoose()
+		fmt.Println("Choose : ", val)
 		if strings.HasPrefix(val, "ssh://") {
 			vps := servermanager.Parse(val)
 			vps.Proxy = PROXY
