@@ -28,6 +28,7 @@ func main() {
 	todoPro := false
 	matchAll := false
 	openvim := false
+	notemode := false
 	PasswordMode := false
 	catmode := ""
 	PROXY := ""
@@ -39,8 +40,10 @@ func main() {
 	flag.BoolVar(&matchAll, "v", false, "true to show every match")
 	flag.BoolVar(&todoPro, "todo", false, "true to start todo program")
 	flag.BoolVar(&openvim, "vim", false, "true to open with editer")
-	flag.StringVar(&catmode, "cat", "", "true cat files")
 	flag.BoolVar(&PasswordMode, "pwd", false, "true to open my password")
+	flag.BoolVar(&notemode, "note", false, "true to open my password")
+
+	flag.StringVar(&catmode, "cat", "", "true cat files")
 	flag.StringVar(&PROXY, "proxy", "", "set proxy")
 	flag.Parse()
 	args := flag.Args()
@@ -49,6 +52,12 @@ func main() {
 		ui.Main(root)
 		return
 	}
+
+	if notemode {
+		ui.MainNote(root)
+		return
+	}
+
 	if PasswordMode {
 		pn := ui.Load()
 		val := pn.CHoose()
