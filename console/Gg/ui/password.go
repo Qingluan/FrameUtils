@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/Qingluan/FrameUtils/tui"
 	"github.com/Qingluan/FrameUtils/utils"
@@ -26,7 +27,7 @@ var (
 	pwd__    = ""
 )
 
-func GetRepo() string {
+func GetRepo(ps ...string) string {
 	r, err := ioutil.ReadFile(PWD)
 	giturl := ""
 
@@ -37,6 +38,9 @@ func GetRepo() string {
 			USERNAME = strings.TrimSpace(l)
 		}
 	}
+	if ps != nil {
+		pwd__ = ps[0]
+	}
 
 	if err != nil || giturl == "" {
 		url := tui.GetPass("set git repo:")
@@ -44,6 +48,7 @@ func GetRepo() string {
 		if USERNAME == "" {
 			USERNAME = tui.GetPass("git username")
 		}
+
 		if pwd__ == "" {
 			pwd__ = GetPass("git password (" + USERNAME + ")>")
 		}
@@ -87,17 +92,21 @@ func GetRepo() string {
 		return string(bytes.TrimSpace(r))
 	}
 }
-func Update() {
+func Update(ps ...string) {
+	// os.Remove()
+
+	// os.RemoveAll(PWDDIR)
 	r, err := git.PlainOpen(PWDDIR)
 	if err != nil {
 		log.Fatal("Git open :", err)
 	}
-
 	w, err := r.Worktree()
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	if ps != nil {
+		pwd__ = ps[0]
+	}
 	log.Println("git doing ...")
 	if USERNAME == "" {
 		USERNAME = tui.GetPass("git username")
@@ -106,6 +115,9 @@ func Update() {
 		pwd__ = GetPass("git password (" + USERNAME + ")>")
 	}
 
+	// r.Fetch(&git.FetchOptions{
+
+	// })
 	err = w.Pull(&git.PullOptions{
 		RemoteName:      "origin",
 		InsecureSkipTLS: true,
@@ -115,17 +127,21 @@ func Update() {
 			Password: pwd__,
 		}})
 	if err != nil {
-		// log.Fatal("pull err:", err)
+		log.Println("pull log:", err)
 	} else {
-
 		log.Println("git done")
 	}
+	time.Sleep(2 * time.Second)
 
 }
 
 func Upload(password ...string) {
+
 	if USERNAME == "" {
 		USERNAME = tui.GetPass("git username")
+	}
+	if password != nil {
+		pwd__ = password[0]
 	}
 	if pwd__ == "" {
 		pwd__ = GetPass("git password (" + USERNAME + ")>")

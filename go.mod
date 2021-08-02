@@ -13,16 +13,16 @@ require (
 	github.com/c-bata/go-prompt v0.2.6
 	github.com/charmbracelet/bubbles v0.8.0
 	github.com/charmbracelet/bubbletea v0.14.1
-	github.com/charmbracelet/lipgloss v0.1.2
 	github.com/cheggaaa/pb/v3 v3.0.7
 	github.com/containerd/console v1.0.2 // indirect
 	github.com/cretz/bine v0.2.0 // indirect
 	github.com/fatih/color v1.12.0
 	github.com/fortytw2/leaktest v1.3.0 // indirect
+	github.com/gen2brain/dlgs v0.0.0-20210609125024-bf6c92aaa984
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/google/uuid v1.2.0
+	github.com/gopherjs/gopherjs v0.0.0-20210722203344-69c5ea87048d // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/juju/ansiterm v0.0.0-20210706145210-9283cdf370b5 // indirect
 	github.com/junhsieh/goexamples v0.0.0-20210726042009-4fa8c1342284
@@ -50,5 +50,4 @@ require (
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 	golang.org/x/text v0.3.6
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

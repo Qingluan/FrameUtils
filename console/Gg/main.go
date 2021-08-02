@@ -54,7 +54,27 @@ func main() {
 	}
 
 	if notemode {
-		ui.MainNote(root)
+		val := ui.MainNote()
+		if strings.HasPrefix(val, "ssh://") {
+			vps := servermanager.Parse(val)
+			vps.Proxy = PROXY
+			vps.Shell()
+		} else if strings.HasPrefix(val, "vul://") {
+			manager := servermanager.NewVultr(val[6:])
+			if err := manager.Update(); err == nil {
+				ee := []tui.CanString{}
+				for _, w := range manager.GetServers() {
+					ee = append(ee, w)
+				}
+				if oneVps, ok := tui.SelectOne("select one:", ee); ok {
+					vps := oneVps.(servermanager.Vps)
+					vps.Proxy = PROXY
+					fmt.Println(vps.Shell())
+				}
+			} else {
+				log.Fatal(utils.Red(err))
+			}
+		}
 		return
 	}
 
