@@ -125,9 +125,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 
+			if m.choices[m.cursor] == "---" {
+				m.cursor--
+			}
+
 		// The "down" and "j" keys move the cursor down
 		case "down", "j":
 			if m.cursor < len(m.choices)-1 {
+				m.cursor++
+			}
+			if m.choices[m.cursor] == "---" {
 				m.cursor++
 			}
 		case "v":
@@ -197,9 +204,14 @@ func (m *model) View() string {
 		m.msg = ""
 		// m.action = time
 	}
-	// Iterate over our choices
+	// Iterate over our choice
+	// groupContains := false
+	// groupFinish := false
 	for i, choice := range m.choices {
-
+		if choice == "---" {
+			s += "—————————————————————————\n"
+			continue
+		}
 		// Is the cursor pointing at this choice?
 		cursor := " " // no cursor
 		if m.cursor == i {
@@ -210,6 +222,7 @@ func (m *model) View() string {
 		checked := " " // not selected
 		if _, ok := m.selected[i]; ok {
 			checked = "■" // selected!
+
 		}
 
 		// Render the row
@@ -245,6 +258,9 @@ func ReadToDo(root string) *model {
 				finished = append(finished, c)
 				// fmt.Println("ccc")
 				items = append(items, strings.ReplaceAll(l[2:], "- ", "\t"))
+			} else if strings.HasPrefix(l, "---") {
+				// fmt.Println("ddd")
+				items = append(items, "---")
 			}
 		}
 
