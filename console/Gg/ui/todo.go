@@ -13,13 +13,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type Val struct {
+	num int
+}
+
 type model struct {
-	choices  []string         // items on the to-do list
-	cursor   int              // which to-do list item our cursor is pointing at
-	selected map[int]struct{} // which to-do items are selected
+	choices  []string    // items on the to-do list
+	cursor   int         // which to-do list item our cursor is pointing at
+	selected map[int]Val // which to-do items are selected
 	choiced  []string
 	Path     string
 	msg      string
@@ -37,7 +42,7 @@ func NewModel(items ...string) (m *model) {
 	// A map which indicates which choices are selected. We're using
 	// the  map like a mathematical set. The keys refer to the indexes
 	// of the `choices` slice, above.
-	m.selected = make(map[int]struct{})
+	m.selected = make(map[int]Val)
 	m.choices = items
 	return
 }
@@ -48,7 +53,7 @@ func (m *model) Add(item string) {
 
 func (m *model) SetItems(items ...string) {
 	m.choices = items
-	m.selected = make(map[int]struct{})
+	m.selected = make(map[int]Val)
 	m.choiced = []string{}
 }
 
@@ -141,13 +146,32 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m = m.Vim()
 		// The "enter" key and the spacebar (a literal space) toggle
 		// the selected state for the item that the cursor is pointing at.
-		case " ":
+		case " ", "l":
 			_, ok := m.selected[m.cursor]
 			if ok {
 				delete(m.selected, m.cursor)
 			} else {
-				m.selected[m.cursor] = struct{}{}
+				m.selected[m.cursor] = Val{}
 			}
+			pre := strings.Count(m.choices[m.cursor], "\t")
+			i := m.cursor
+			for i < len(m.choices)-1 {
+				nextchoo := m.choices[i+1]
+				if thispre := strings.Count(nextchoo, "\t"); thispre > pre {
+					if _, ok := m.selected[i+1]; ok {
+						delete(m.selected, i+1)
+					} else {
+						// w, _ := m.selected[m.cursor]
+						// w.num = i + 1 - pre
+						m.selected[i+1] = Val{}
+					}
+				} else {
+					break
+				}
+				i += 1
+			}
+			// m.selected[m.cursor] = Val{num: i + 1 - pre}
+
 		case "enter":
 			for i, v := range m.choices {
 				if _, ok := m.selected[i]; ok {
@@ -220,9 +244,14 @@ func (m *model) View() string {
 
 		// Is this choice selected?
 		checked := " " // not selected
-		if _, ok := m.selected[i]; ok {
-			checked = "■" // selected!
+		if c, ok := m.selected[i]; ok {
+			if c.num > 0 {
+				checked = utils.Green(c.num) // selected!
+			} else {
+				checked = utils.Green("■") // selected!
 
+			}
+			// checked = utils.BBlue("✔")
 		}
 
 		// Render the row
@@ -230,7 +259,7 @@ func (m *model) View() string {
 	}
 
 	// The footer
-	s += "\nPress q to quit.\n"
+	s += "\nPress 'v' to edit // enter to save //  'q'  to quit.\n"
 
 	// Send the UI for rendering
 	return s
@@ -269,7 +298,7 @@ func ReadToDo(root string) *model {
 		m.Path = root
 		for _, c := range finished {
 
-			m.selected[c] = struct{}{}
+			m.selected[c] = Val{}
 		}
 		return m
 	} else {
@@ -294,7 +323,7 @@ func ReadToDo(root string) *model {
 		m.Path = filepath.Join(root, ".todo")
 		for _, c := range finished {
 
-			m.selected[c] = struct{}{}
+			m.selected[c] = Val{}
 		}
 		return m
 	}
