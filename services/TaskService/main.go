@@ -75,7 +75,7 @@ sslkey = "server.key"
 	if stop {
 		s := jupyter.NewSession()
 		log.Println(utils.Yellow(config.UrlApi(config.Listen)))
-		if res, err := s.Json(config.UrlApi(config.Listen), map[string]string{
+		if res, err := s.Json(config.UrlApi(config.Listen), utils.Dict{
 			"oper": "stop",
 		}); err == nil {
 			log.Println(utils.Green(res.Json()))
@@ -86,7 +86,7 @@ sslkey = "server.key"
 		s := jupyter.NewSession()
 		log.Println(utils.Yellow(config.UrlApi(config.Listen)))
 
-		if res, err := s.Json(config.UrlApi(config.Listen), map[string]string{
+		if res, err := s.Json(config.UrlApi(config.Listen), utils.Dict{
 			"oper": "restart",
 		}); err == nil {
 			log.Println(utils.Green(res.Json()))

@@ -169,7 +169,7 @@ func main() {
 	cmds := flag.Args()
 	if tp == "json" {
 		sess := jupyter.NewSession()
-		data := utils.BDict{}
+		data := utils.Dict{}
 		data = data.FromCmd(strings.Join(cmds, " "))
 		// log.Println(cmds, "\n", color.New(color.FgBlue).Sprint(data))
 		output(sess.Json(target, data))

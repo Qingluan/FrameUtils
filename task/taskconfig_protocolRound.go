@@ -71,7 +71,7 @@ func (taskconfig *TaskConfig) SendToOtherServer(ip string, data TData) (reply TD
 			log.Println(utils.Red("set proxy:", taskconfig.Proxy), " failed!! use default direct connect!")
 		}
 	}
-	sendData := utils.BDict{}
+	sendData := utils.Dict{}
 	for k, v := range data {
 		switch v.(type) {
 		case string:

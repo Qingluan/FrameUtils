@@ -39,6 +39,7 @@ require (
 	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/pkg/sftp v1.13.2
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
+	github.com/schollz/progressbar/v3 v3.8.2
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/tealeg/xlsx v1.0.5

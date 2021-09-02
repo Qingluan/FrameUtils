@@ -239,7 +239,7 @@ func HTTPCall(tconfig *TaskConfig, args []string, kargs utils.Dict) (TaskObj, er
 			}
 			res, err = sess.Post(targetUrl, data)
 		case "json":
-			data := utils.BDict{}
+			data := utils.Dict{}
 			err = json.Unmarshal([]byte(args[2]), &data)
 			if err != nil {
 				return obj, err

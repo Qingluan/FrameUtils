@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Qingluan/FrameUtils/utils"
 	jupyter "github.com/Qingluan/jupyter/http"
 )
 
@@ -94,7 +95,7 @@ func StartUpgradeClient(upgradeServiceURL, cmd string, waitSec int, check func()
 			if check() {
 				before()
 				sess := jupyter.NewSession()
-				if res, err := sess.Json(upgradeServiceURL, map[string]string{
+				if res, err := sess.Json(upgradeServiceURL, utils.Dict{
 					"pid": fmt.Sprintf("%d", os.Getpid()),
 					"cmd": cmd,
 				}); err == nil {

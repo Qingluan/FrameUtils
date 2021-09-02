@@ -34,4 +34,5 @@ type Obj interface {
 	Marshal() ([]byte, []string, error)
 
 	WithTmpDB(dbName string) *ObjDatabase
+	ToMysql(sql *SqlConnectParm)
 }

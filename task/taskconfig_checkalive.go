@@ -26,7 +26,7 @@ func (config *TaskConfig) CheckAlive(servers ...string) {
 		go func(w *sync.WaitGroup, s string, alive chan string) {
 			defer w.Done()
 			sess := jupyter.NewSession()
-			if res, err := sess.Json(config.UrlApi(s), map[string]string{
+			if res, err := sess.Json(config.UrlApi(s), utils.Dict{
 				"oper": "test",
 			}); err == nil {
 				if _, ok := res.Json()["state"]; ok {
@@ -36,7 +36,7 @@ func (config *TaskConfig) CheckAlive(servers ...string) {
 				if strings.Contains(err.Error(), "server gave HTTP response to HTTPS client") {
 					log.Println("[DEBUG] may url is http :", utils.Yellow(s))
 					api := "http://" + strings.SplitN(config.UrlApi(s), "://", 2)[1]
-					if res, err = sess.Json(api, map[string]string{
+					if res, err = sess.Json(api, utils.Dict{
 						"oper": "test",
 					}); err == nil {
 						if _, ok := res.Json()["state"]; ok {
