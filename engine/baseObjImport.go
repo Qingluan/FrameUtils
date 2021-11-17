@@ -30,7 +30,7 @@ func ParseTime(timestamp string) string {
 }
 
 func (p *SqlConnectParm) DSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s", p.User, p.Pwd, p.Host, p.DB)
+	return fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", p.User, p.Pwd, p.Host, p.DB, p.Config)
 }
 
 func ParseTimeAsColumns(p string, line []string) []string {
@@ -61,6 +61,7 @@ type SqlConnectParm struct {
 	Batch        int
 	Thread       int
 	TimeParseCol string
+	Config       string
 }
 
 /*ParseSqlConnectionStr
@@ -134,6 +135,7 @@ func ParseSqlConnectionStr(s string) (sql *SqlConnectParm) {
 	sql.Host = addr
 	sql.DB = db
 	sql.Table = table
+	sql.Config = "charset=utf8mb4&collation=utf8mb4_unicode_ci"
 	if table == "" {
 		log.Fatal("must include a table like :user:pwd@tcp(addr)/db?table ")
 	}
