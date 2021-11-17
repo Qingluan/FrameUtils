@@ -109,6 +109,9 @@ func (cli *MySql) WriteToExcel(name, sheet string, rows *sql.Rows) (err error) {
 			value := fb.Get(name)
 			switch value.(type) {
 			case nil:
+
+				cell := row.AddCell()
+				cell.SetValue("")
 			default:
 				cell := row.AddCell()
 				cell.SetValue(value)
