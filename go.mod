@@ -45,6 +45,7 @@ require (
 	github.com/tealeg/xlsx/v3 v3.2.3
 	github.com/thedatashed/xlsxreader v1.2.1
 	github.com/timakin/gonvert v0.0.0-20170112000238-5dce59dbd0d8
+	github.com/xuri/excelize/v2 v2.5.0
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect

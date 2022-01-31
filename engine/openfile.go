@@ -21,7 +21,8 @@ func OpenObj(file string) (Obj, error) {
 		}
 		return &BaseObj{
 			&Xlsx{
-				obj: xl,
+				obj:  xl,
+				name: file,
 			},
 		}, nil
 	} else if strings.HasSuffix(file, ".csv") {

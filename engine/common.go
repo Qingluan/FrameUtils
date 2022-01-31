@@ -35,3 +35,7 @@ func (empty EmptyBaseClass) header(keylength ...int) (l utils.Line) {
 	}
 	return
 }
+
+func (empty EmptyBaseClass) InsertInto(maches utils.Dict, values ...interface{}) (num int64, err error) {
+	return
+}

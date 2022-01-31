@@ -55,3 +55,7 @@ func (self *Docx) header(...int) (l utils.Line) {
 func (s *Docx) Tp() string {
 	return "docx"
 }
+
+func (obj *Docx) InsertInto(maches utils.Dict, values ...interface{}) (num int64, err error) {
+	return
+}

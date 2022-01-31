@@ -32,7 +32,11 @@ type Obj interface {
 	ToHTML(tableID string, each ...func(row, col int, value string) string) string
 	AsJson() []utils.Dict
 	Marshal() ([]byte, []string, error)
-
+	InsertInto(maches utils.Dict, values utils.BDict) (num int64, err error)
 	WithTmpDB(dbName string) *ObjDatabase
 	ToMysql(sql *SqlConnectParm)
+	Select(header string, columnIndex ...int) <-chan utils.Line
+	Tables() []string
+	SelectAllByNames(column_names ...string) (<-chan utils.Line, error)
+	SelectByNames(header string, column_names ...string) (output <-chan utils.Line, err error)
 }

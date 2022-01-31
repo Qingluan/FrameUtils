@@ -61,3 +61,11 @@ func XlsxToStr(path string) (content string, err error) {
 	return
 
 }
+
+// func InsertInto(targetDataframe string, matchKey map[string]string, values ...string) {
+// 	if strings.Contains(targetDataframe, ".") {
+// 		if strings.HasSuffix(targetDataframe, ".xlsx") {
+// 			xlsx := engine.OpenObj()
+// 		}
+// 	}
+// }

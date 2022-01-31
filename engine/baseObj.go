@@ -148,6 +148,107 @@ func (self *BaseObj) Where(filter func(lineno int, line utils.Line, wordno int, 
 	return
 }
 
+func (obj *BaseObj) Select(header string, columnIndex ...int) <-chan utils.Line {
+	ch := make(chan utils.Line)
+	go func() {
+		defer close(ch)
+		for line := range obj.Iter(header) {
+			newline := utils.Line{}
+			for _, ix := range columnIndex {
+				newline = append(newline, line[ix])
+			}
+			ch <- newline
+		}
+	}()
+	return ch
+}
+
+func (obj *BaseObj) Tables() []string {
+	if obj.Tp() == "xlsx" {
+		return (obj.Base.(*Xlsx)).tables
+	} else if obj.Tp() == "csv" {
+		return []string{(obj.Base.(*Csv)).tableName}
+	} else if obj.Tp() == "mbox" {
+		return []string{(obj.Base.(*Mbox)).tableName}
+	} else if obj.Tp() == "docx" {
+		return []string{(obj.Base.(*Docx)).tableName}
+	} else if obj.Tp() == "mbox" {
+		return []string{(obj.Base.(*Mbox)).tableName}
+	}
+	return []string{}
+}
+
+func (obj *BaseObj) SelectByNames(header string, column_names ...string) (output <-chan utils.Line, err error) {
+	// for _, name := range obj.Tables() {
+	headerNames := obj.GetHeader(header)
+	ixs := []int{}
+	for _, h := range column_names {
+		ix := headerNames.Index(h)
+
+		if ix > -1 {
+			ixs = append(ixs, ix)
+		} else {
+			err = fmt.Errorf("no such name in header:" + h)
+			break
+		}
+	}
+	if err != nil {
+		return
+	}
+	if len(ixs) > 0 {
+		return obj.Select(header, ixs...), nil
+	}
+	return
+}
+
+func (obj *BaseObj) SelectAllByNames(column_names ...string) (<-chan utils.Line, error) {
+	ch := make(chan utils.Line)
+	var err error
+	go func() {
+		defer close(ch)
+
+		foundAll := false
+		for _, name := range obj.Tables() {
+			found := true
+			headerNames := obj.GetHeader(name)
+			ixs := []int{}
+			for _, h := range column_names {
+				ix := headerNames.Index(h)
+				if ix > -1 {
+					ixs = append(ixs, ix)
+				} else {
+					// err = fmt.Errorf("no such name in header:")
+					found = false
+					break
+				}
+			}
+
+			if len(ixs) > 0 && found {
+				for l := range obj.Select(name, ixs...) {
+					ch <- l
+				}
+			}
+			if found {
+				foundAll = true
+			}
+		}
+		if !foundAll {
+			err = fmt.Errorf("every header can not include :'%s'", strings.Join(column_names, ","))
+		}
+
+	}()
+	return ch, err
+}
+
+func (obj *BaseObj) InsertInto(maches utils.Dict, values utils.BDict) (num int64, err error) {
+	if obj.Tp() == "xlsx" {
+		return (obj.Base.(*Xlsx)).InsertInto(maches, values)
+	}
+	return
+	// return obj.Base.InsertInto(maches, values...)
+	// return
+}
+
 const (
 	LEFTJOIN  = 0
 	RIGHTJOIN = 1

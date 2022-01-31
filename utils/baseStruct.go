@@ -111,6 +111,14 @@ func (line Line) Contain(word string) bool {
 	}
 	return false
 }
+func (line Line) Index(word string) int {
+	for i, v := range line {
+		if v == word {
+			return i
+		}
+	}
+	return -1
+}
 
 func (line Line) Contains(oline Line) bool {
 	for _, w := range line {
