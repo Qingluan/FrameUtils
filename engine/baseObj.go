@@ -71,7 +71,7 @@ func (self *BaseObj) GetHeader(k string) (header utils.Line) {
 	} else if self.Tp() == "sqltxt" {
 		return (self.Base.(*SqlTxt)).GetHead(k)
 	} else if self.Tp() == "xlsx" {
-		(self.Base.(*Xlsx)).GetHead(k)
+		return (self.Base.(*Xlsx)).GetHead(k)
 	} else {
 		return
 	}
@@ -155,7 +155,7 @@ func (obj *BaseObj) Select(header string, columnIndex ...int) <-chan utils.Line 
 		for line := range obj.Iter(header) {
 			newline := utils.Line{}
 			for _, ix := range columnIndex {
-				newline = append(newline, line[ix])
+				newline = append(newline, line[ix+1])
 			}
 			ch <- newline
 		}
@@ -165,7 +165,7 @@ func (obj *BaseObj) Select(header string, columnIndex ...int) <-chan utils.Line 
 
 func (obj *BaseObj) Tables() []string {
 	if obj.Tp() == "xlsx" {
-		return (obj.Base.(*Xlsx)).tables
+		return (obj.Base.(*Xlsx)).obj.Sheets
 	} else if obj.Tp() == "csv" {
 		return []string{(obj.Base.(*Csv)).tableName}
 	} else if obj.Tp() == "mbox" {
@@ -208,22 +208,30 @@ func (obj *BaseObj) SelectAllByNames(column_names ...string) (<-chan utils.Line,
 		defer close(ch)
 
 		foundAll := false
+
 		for _, name := range obj.Tables() {
+
 			found := true
 			headerNames := obj.GetHeader(name)
+
+			// fmt.Println("table:", name, headerNames)
 			ixs := []int{}
 			for _, h := range column_names {
 				ix := headerNames.Index(h)
 				if ix > -1 {
 					ixs = append(ixs, ix)
 				} else {
+
+					// fmt.Println("Select:", h, ix)
 					// err = fmt.Errorf("no such name in header:")
 					found = false
 					break
 				}
 			}
 
+			// fmt.Println("Select:", name, ixs)
 			if len(ixs) > 0 && found {
+				// fmt.Println("Select:", name, ixs)
 				for l := range obj.Select(name, ixs...) {
 					ch <- l
 				}
