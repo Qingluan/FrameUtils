@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Qingluan/FrameUtils/utils"
+	"github.com/shakinm/xlsReader/xls"
 	"github.com/thedatashed/xlsxreader"
 )
 
@@ -22,6 +23,18 @@ func OpenObj(file string) (Obj, error) {
 		return &BaseObj{
 			&Xlsx{
 				obj:  xl,
+				name: file,
+			},
+		}, nil
+	} else if strings.HasSuffix(file, ".xls") {
+		work, err := xls.OpenFile(file)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		return &BaseObj{
+			&Xls{
+				obj:  &work,
 				name: file,
 			},
 		}, nil

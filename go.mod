@@ -40,6 +40,7 @@ require (
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/schollz/progressbar/v3 v3.8.2
 	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/shakinm/xlsReader v0.9.10
 	github.com/sirupsen/logrus v1.8.1
 	github.com/tealeg/xlsx v1.0.5
 	github.com/tealeg/xlsx/v3 v3.2.3
