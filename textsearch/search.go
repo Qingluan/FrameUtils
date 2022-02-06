@@ -51,6 +51,7 @@ func QueryObj(search string) (querys []string) {
 func Search(root, tps, search string, matchAll bool, openVim bool) {
 	fileTpes := make(map[string]int)
 	for _, f := range strings.Split(tps, ",") {
+		f = strings.TrimSpace(f)
 		fileTpes[f] = 1
 	}
 	startAt := time.Now()
